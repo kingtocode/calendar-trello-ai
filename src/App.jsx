@@ -161,13 +161,18 @@ function App() {
     <div className="app">
       <div className="header">
         <h1 className="title">AI Task Whisperer</h1>
-        <p className="subtitle">Create calendar events and Trello cards with voice or text</p>
+        <p className="subtitle">
+          Create calendar events and Trello cards with voice or text
+          <span className={`current-mode ${aiMode ? 'ai-mode' : 'simple-mode'}`}>
+            {aiMode ? ' • AI Mode Active' : ' • Simple Mode Active'}
+          </span>
+        </p>
         <div className="header-buttons">
-          <button 
+          <button
             onClick={() => setAiMode(!aiMode)}
             className={`ai-mode-btn ${aiMode ? 'ai-active' : ''}`}
           >
-            {aiMode ? '🤖 AI Mode' : '📝 Simple Mode'}
+            {aiMode ? '📝 Switch to Simple Mode' : '🤖 Switch to AI Mode'}
           </button>
           <button 
             onClick={() => setShowEvents(!showEvents)}
