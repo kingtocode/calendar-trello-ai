@@ -1,29 +1,31 @@
 # 🤖 AI Task Whisperer
 
-## 🚀 Quick Start
-
-To start the calendar-trello-ai agent:
-
-1. **Navigate to project directory:**
-   ```bash
-   cd "/Volumes/T7 Shield/claude-projects/calendar-trello-ai"
-   ```
-
-2. **Start the backend server:**
-   ```bash
-   npm start
-   ```
-
-3. **Start the frontend (in another terminal):**
-   ```bash
-   npm run dev
-   ```
-
-4. **Access the app:** Open `http://localhost:5174` in your browser
-
----
+**Live Demo:** https://calendar-trello-ai.vercel.app/
 
 A smart, agentic AI-powered task management app that integrates Google Calendar and Trello with conversational AI capabilities. Features voice recognition, natural language understanding, conflict detection, and intelligent task orchestration across multiple platforms.
+
+## 🚀 Quick Access
+
+### 🌐 **Vercel Deployment (Recommended)**
+**Access anywhere:** https://calendar-trello-ai.vercel.app/
+- ✅ No local setup required
+- ✅ Works on any device with internet
+- ✅ Full API functionality
+- ✅ Always up-to-date
+
+### 💻 **Local Development**
+```bash
+# Navigate to project directory
+cd calendar-trello-ai
+
+# Start backend server
+npm start
+
+# Start frontend (in another terminal)
+npm run dev
+
+# Access at http://localhost:5174
+```
 
 ## ✨ Features
 
@@ -32,159 +34,50 @@ A smart, agentic AI-powered task management app that integrates Google Calendar 
 - **Natural Language Processing**: Speak naturally - "Dentist appointment tomorrow at 2 PM"
 - **Smart Text Input**: Type commands in plain English
 
-### 🤖 AI-Powered Intelligence
+### 🤖 AI-Powered Intelligence (AI Mode)
 - **Intent Recognition**: Understands CREATE, EDIT, DELETE, and LIST commands
 - **Conflict Detection**: Warns about scheduling conflicts with existing events
 - **Smart Suggestions**: Provides optimization recommendations and related tasks
 - **Context Awareness**: Knows your existing events and provides relevant responses
+- **Quota Handling**: Graceful fallback to Simple Mode if AI limits reached
+
+### 📝 Simple Mode (No AI Required)
+- **Direct Task Creation**: Basic task parsing without AI overhead
+- **Reliable Fallback**: Always works even without OpenAI access
+- **Fast Processing**: Instant task creation
+- **Clear Mode Switching**: Intuitive toggle between modes
 
 ### 📅 Calendar Integration
 - **Google Calendar Sync**: Automatically creates and manages calendar events
 - **Smart Scheduling**: Extracts dates, times, and creates proper event durations
 - **Event Editing**: Modify existing events with natural language commands
-- **Conflict Warnings**: Alerts when new events overlap with existing ones
+- **Event Viewing**: Browse your upcoming calendar events
+- **Event Deletion**: Remove events directly from the app
 
 ### 📋 Trello Integration
 - **Multi-Board Support**: Supports Kings, Personal, Work, and Project boards
 - **Automatic Card Creation**: Creates Trello cards alongside calendar events
-- **Smart Matching**: Finds and manages related cards when editing/deleting events
+- **Board Selection**: Choose which Trello board to add tasks to
 
 ### 📱 Mobile-Friendly Design
-- **Responsive Layout**: Optimized for iPhone, Pixel, and other mobile devices
-- **Dynamic Viewport**: Uses modern CSS for perfect mobile fit
+- **Responsive Layout**: Optimized for iPhone, Android, and tablets
 - **Touch-Friendly**: Large buttons and intuitive mobile interface
+- **PWA Ready**: Install as app on mobile devices
 
-## 🤖 Agentic AI Capabilities
+## 🛠️ Current Architecture
 
-**Agentic Scale: 7/10** - Your app demonstrates several key agentic AI characteristics:
+### **Vercel Serverless Functions**
+- `/api/create-task` - Simple mode task creation
+- `/api/process-command` - AI-powered task processing
+- `/api/events` - Get calendar events
+- `/api/events/[eventId]` - Edit/delete specific events
 
-### ✅ What Makes It Agentic
-- **Natural Language Understanding**: Interprets complex commands and user intent
-- **Multi-Tool Integration**: Autonomously manages Google Calendar and Trello APIs
-- **Context Awareness**: Understands existing events and detects conflicts
-- **Reasoning & Decision Making**: Chooses appropriate actions and provides smart suggestions
-- **Planning**: Executes multi-step actions (create calendar event + Trello card)
-- **Adaptation**: Adjusts responses based on context and conflicts
-
-### 🔄 Agentic Features in Action
-- **Tool Use**: Automatically calls appropriate APIs based on user intent
-- **Context**: Maintains awareness of your schedule and provides relevant suggestions
-- **Planning**: Orchestrates complex workflows across multiple platforms
-- **Reasoning**: Makes intelligent decisions about event matching and conflict resolution
-
-### 🚀 Future Enhancements for Full Autonomy
-- Long-term memory and learning user preferences
-- Proactive suggestions and autonomous task scheduling
-- Multi-conversation context and relationship understanding
-- Self-directed goal setting and task prioritization
-
-## Setup Instructions
-
-### 1. Install Dependencies
-
-```bash
-npm install
-```
-
-### 2. Google Calendar API Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable the Google Calendar API
-4. Create OAuth 2.0 credentials:
-   - Application type: Web application
-   - Authorized redirect URIs: `http://localhost:3001/auth/google/callback`
-5. Download the client configuration
-6. Set up OAuth consent screen with your email scope
-
-### 3. Trello API Setup
-
-1. Go to [Trello API Key](https://trello.com/app-key)
-2. Get your API Key
-3. Generate a token with read/write permissions
-4. Find your Kings board list ID:
-   - Go to your Trello board
-   - Add `.json` to the board URL to get board data
-   - Find the list ID for where you want cards created
-
-### 4. Environment Configuration
-
-1. Copy `.env.example` to `.env`
-2. Fill in your API credentials:
-
-```env
-# Google Calendar API Configuration
-GOOGLE_CLIENT_ID=your_google_client_id_here
-GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-GOOGLE_REDIRECT_URI=http://localhost:3001/auth/google/callback
-GOOGLE_REFRESH_TOKEN=your_refresh_token_here
-
-# Trello API Configuration  
-TRELLO_API_KEY=your_trello_api_key_here
-TRELLO_TOKEN=your_trello_token_here
-
-# Multiple Trello Boards Support
-TRELLO_KINGS_BOARD_LIST_ID=your_kings_board_list_id_here
-TRELLO_PERSONAL_BOARD_LIST_ID=your_personal_board_list_id_here
-TRELLO_WORK_BOARD_LIST_ID=your_work_board_list_id_here
-TRELLO_PROJECT_BOARD_LIST_ID=your_project_board_list_id_here
-
-# Default board (options: kings, personal, work, project)
-DEFAULT_TRELLO_BOARD=kings
-
-# OpenAI API Configuration
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Claude AI API Configuration (alternative - keeping for reference)
-# ANTHROPIC_API_KEY=your_claude_api_key_here
-
-# Server Configuration
-PORT=3001
-```
-
-### 5. Get Google Refresh Token
-
-You'll need to get a refresh token for Google Calendar access:
-
-1. Use Google's OAuth 2.0 Playground or create a simple auth flow
-2. Authorize Calendar scope: `https://www.googleapis.com/auth/calendar`
-3. Exchange authorization code for refresh token
-4. Add refresh token to your `.env` file
-
-## Running the Application
-
-1. **Start the backend server**:
-```bash
-npm start
-```
-
-2. **Start the frontend development server** (in another terminal):
-```bash
-npm run dev
-```
-
-3. **Open your browser** to `http://localhost:5174` (or the port shown in your terminal)
-
-## 📱 Mobile Access
-
-### Option 1: Local Network (Same WiFi)
-```bash
-# Find your computer's IP address
-ifconfig | grep "inet " | grep -v 127.0.0.1
-
-# Access from phone using your IP
-http://YOUR_IP_ADDRESS:5174
-# Example: http://192.168.1.232:5174
-```
-
-### Option 2: ngrok (Internet Access)
-```bash
-# Install ngrok and setup your account
-ngrok http 5174
-
-# Use the provided https URL on any device
-# Example: https://abc123.ngrok.app
-```
+### **Technology Stack**
+- **Frontend**: React 18 + Vite 5, deployed to Vercel
+- **Backend**: Node.js serverless functions on Vercel
+- **AI**: OpenAI GPT-4o-mini for natural language processing
+- **Integrations**: Google Calendar API, Trello REST API
+- **Voice**: Web Speech API (browser-native)
 
 ## 🎯 Usage Examples
 
@@ -192,7 +85,7 @@ ngrok http 5174
 ```
 "Move my dentist appointment to Friday"
 "What's my schedule for tomorrow?"
-"Cancel my yoga class this week" 
+"Cancel my yoga class this week"
 "Find time for grocery shopping"
 "Add a 2-hour reminder to my meeting"
 "Edit the Metro Spice Mart event to end earlier"
@@ -215,51 +108,170 @@ Simply click the 🎤 Voice button and say:
 - "Remind me to call the plumber tomorrow at 10"
 - "Cancel my gym session on Friday"
 
-## How It Works
+## ⚙️ Setup Instructions
 
-1. **Input Processing**: The app accepts voice or text input describing your task
-2. **Smart Parsing**: Uses regex patterns and natural language processing to extract:
-   - Task title
-   - Date/time information
-   - Whether it's a calendar event or just a task
-3. **Calendar Creation**: For time-sensitive items, creates Google Calendar events
-4. **Trello Sync**: Creates cards in your Kings board with appropriate details
-5. **Confirmation**: Shows success status and links to created items
+### For Vercel Deployment (Current)
 
-## API Endpoints
+**Environment Variables Required:**
+Set these in your Vercel dashboard → Project → Settings → Environment Variables:
 
-- `POST /api/create-task`: Creates calendar events and Trello cards
-- `GET /api/health`: Health check endpoint
+```env
+# Google Calendar API Configuration
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+GOOGLE_REDIRECT_URI=https://calendar-trello-ai.vercel.app/auth/google/callback
+GOOGLE_REFRESH_TOKEN=your_refresh_token_here
 
-## Configuration Notes
+# Trello API Configuration
+TRELLO_API_KEY=your_trello_api_key_here
+TRELLO_TOKEN=your_trello_token_here
 
-- Calendar email is set to: `vincent2king8@gmail.com`
-- Trello cards are added to the Kings board list specified in your environment
-- Time zone is set to America/New_York (adjust in server.js if needed)
-- Default event duration is 1 hour for calendar events
+# Multiple Trello Boards Support
+TRELLO_KINGS_BOARD_LIST_ID=your_kings_board_list_id_here
+TRELLO_PERSONAL_BOARD_LIST_ID=your_personal_board_list_id_here
+TRELLO_WORK_BOARD_LIST_ID=your_work_board_list_id_here
+TRELLO_PROJECT_BOARD_LIST_ID=your_project_board_list_id_here
 
-## Troubleshooting
+# Default board (options: kings, personal, work, project)
+DEFAULT_TRELLO_BOARD=kings
 
-1. **Voice recognition not working**: Ensure you're using a supported browser (Chrome/Safari)
-2. **Calendar events not creating**: Check your Google API credentials and refresh token
-3. **Trello cards not creating**: Verify your API key, token, and list ID
-4. **CORS issues**: Make sure both servers are running on the correct ports
-5. **AI not working**: Check your OpenAI API key and billing status. The app falls back to basic parsing if AI fails
+# OpenAI API Configuration (Optional - for AI Mode)
+OPENAI_API_KEY=your_openai_api_key_here
+```
 
-## 🛠️ Technology Stack
+### For Local Development
 
-- **Frontend**: React 18, Vite 5, Modern CSS with Glassmorphism design
-- **Backend**: Node.js, Express.js, REST APIs
-- **AI**: OpenAI GPT-4o-mini for fast, cost-effective natural language processing
-- **Integrations**: Google Calendar API, Trello REST API
-- **Voice**: Web Speech API (browser-native)
-- **Styling**: Mobile-first responsive design, Dynamic viewport units
-- **Architecture**: Agentic AI with multi-tool integration and context awareness
+1. **Install Dependencies**
+```bash
+npm install
+```
 
-## 🔧 API Setup Quick Links
+2. **Environment Setup**
+- Copy `.env.example` to `.env`
+- Fill in your API credentials (same as above, but use `http://localhost:3001/auth/google/callback` for redirect URI)
 
-- **Google Calendar API**: [Google Cloud Console](https://console.cloud.google.com)
-- **Trello API**: [Trello Developer Portal](https://trello.com/app-key)  
-- **OpenAI API**: [OpenAI Platform](https://platform.openai.com/api-keys)
-- **Claude API**: [Anthropic Console](https://console.anthropic.com/settings/keys) (alternative)
-- **Helper Scripts**: `npm run setup-auth` (Google), `npm run get-boards` (Trello)
+3. **Run Locally**
+```bash
+# Backend (Terminal 1)
+npm start
+
+# Frontend (Terminal 2)
+npm run dev
+```
+
+## 🔧 API Setup Guides
+
+### 1. Google Calendar API Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable the Google Calendar API
+4. Create OAuth 2.0 credentials:
+   - Application type: Web application
+   - For Vercel: `https://calendar-trello-ai.vercel.app/auth/google/callback`
+   - For local: `http://localhost:3001/auth/google/callback`
+5. Set up OAuth consent screen with calendar scope
+
+### 2. Trello API Setup
+
+1. Go to [Trello API Key](https://trello.com/app-key)
+2. Get your API Key
+3. Generate a token with read/write permissions
+4. Find your board list IDs:
+   - Go to your Trello board
+   - Add `.json` to the board URL
+   - Find the list ID for where you want cards created
+
+### 3. OpenAI API Setup (Optional)
+
+1. Go to [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Create an API key
+3. Add billing if needed for usage beyond free tier
+4. AI Mode will gracefully fallback to Simple Mode if quota exceeded
+
+## 📱 Mobile & Remote Access
+
+### **Vercel App (Recommended)**
+- **URL:** https://calendar-trello-ai.vercel.app/
+- **Access:** Works on any device with internet
+- **Performance:** Fast global CDN
+- **Updates:** Auto-deployed from GitHub
+
+### **Local Network Access**
+```bash
+# Find your computer's IP
+ifconfig | grep "inet " | grep -v 127.0.0.1
+
+# Access from phone (same WiFi)
+http://YOUR_IP_ADDRESS:5174
+```
+
+### **Internet Access via Tunneling**
+```bash
+# Using ngrok
+ngrok http 5174
+
+# Use provided HTTPS URL anywhere
+```
+
+## 🚀 Recent Improvements
+
+### ✅ **Fixed Network Errors**
+- Created all missing Vercel serverless API functions
+- Fixed "The string did not match the expected pattern" error
+
+### ✅ **Enhanced UX**
+- Mode toggle now shows action ("Switch to AI Mode" vs "Switch to Simple Mode")
+- Added current mode indicator
+- Improved mobile responsiveness
+
+### ✅ **Complete Event Management**
+- Event viewing works properly
+- Event editing fully functional (PUT /api/events/[eventId])
+- Event deletion supported (DELETE /api/events/[eventId])
+
+### ✅ **Robust Error Handling**
+- Graceful AI quota handling with mode switching
+- Proper Google Calendar API error responses
+- CORS configured for all endpoints
+
+## 🔍 How It Works
+
+1. **Input Processing**: Accepts voice or text describing your task
+2. **Mode Processing**:
+   - **AI Mode**: Uses OpenAI to understand complex commands
+   - **Simple Mode**: Uses regex patterns for direct parsing
+3. **Calendar Integration**: Creates Google Calendar events for time-sensitive items
+4. **Trello Sync**: Creates cards in selected Trello board
+5. **Confirmation**: Shows success status with links to created items
+
+## 🛡️ Troubleshooting
+
+### **Vercel Deployment Issues**
+- Check environment variables are set correctly
+- Verify API keys have proper permissions
+- Check Vercel function logs for errors
+
+### **Local Development Issues**
+1. **Voice not working**: Use Chrome/Safari, ensure microphone permissions
+2. **Calendar events not creating**: Check Google API credentials and refresh token
+3. **Trello cards not creating**: Verify API key, token, and list ID
+4. **AI not responding**: Check OpenAI API key and billing. App falls back to Simple Mode
+5. **CORS issues**: Ensure both servers running on correct ports
+
+### **API Rate Limits**
+- OpenAI: App gracefully switches to Simple Mode
+- Google Calendar: Built-in retry logic
+- Trello: Standard rate limiting applies
+
+## 🔗 Quick Links
+
+- **Live App**: https://calendar-trello-ai.vercel.app/
+- **Google Calendar API**: [Console](https://console.cloud.google.com)
+- **Trello API**: [Developer Portal](https://trello.com/app-key)
+- **OpenAI API**: [Platform](https://platform.openai.com/api-keys)
+- **Vercel Dashboard**: [Manage Deployment](https://vercel.com/dashboard)
+
+---
+
+**🎉 Your AI Task Whisperer is now live and ready to help you manage tasks across Google Calendar and Trello!**
