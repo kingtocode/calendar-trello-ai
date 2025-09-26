@@ -804,6 +804,82 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'User input is required' })
     }
 
+    // Check if this looks like a simple LIST query - handle without AI
+    const lowerInput = inputText.toLowerCase()
+    const listKeywords = ['when', 'what', 'show', 'list', 'schedule', 'do i have', 'am i', 'where', 'time']
+    const isSimpleListQuery = listKeywords.some(keyword => lowerInput.includes(keyword))
+
+    if (isSimpleListQuery) {
+      console.log('🔍 Detected simple LIST query, handling without AI:', inputText)
+
+      // Get current events for fallback response
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+      )
+
+      oauth2Client.setCredentials({
+        refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+      })
+
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
+
+      try {
+        const eventsResponse = await calendar.events.list({
+          calendarId: 'primary',
+          timeMin: (new Date()).toISOString(),
+          maxResults: 20,
+          singleEvents: true,
+          orderBy: 'startTime'
+        })
+
+        const events = eventsResponse.data.items || []
+
+        // Simple search through events
+        const searchTerms = inputText.toLowerCase().split(' ')
+        const matchingEvents = events.filter(event => {
+          const title = (event.summary || '').toLowerCase()
+          const description = (event.description || '').toLowerCase()
+          return searchTerms.some(term =>
+            title.includes(term) || description.includes(term)
+          )
+        })
+
+        if (matchingEvents.length > 0) {
+          const eventSummaries = matchingEvents.slice(0, 3).map(event => {
+            const date = new Date(event.start.dateTime || event.start.date)
+            return `• ${event.summary} - ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`
+          }).join('\n')
+
+          return res.json({
+            success: true,
+            response: `Found ${matchingEvents.length} matching event(s):\n\n${eventSummaries}`,
+            intent: 'LIST',
+            events: matchingEvents,
+            suggestions: ["Create a new event", "View all events"]
+          })
+        } else {
+          return res.json({
+            success: true,
+            response: "No matching events found in your calendar.",
+            intent: 'LIST',
+            events: [],
+            suggestions: ["Create a new event", "View all events"]
+          })
+        }
+      } catch (calError) {
+        console.error('Calendar error in fallback:', calError)
+        return res.json({
+          success: true,
+          response: "I had trouble accessing your calendar events. Please try again or create a new event.",
+          intent: 'LIST',
+          events: [],
+          suggestions: ["Create a new event", "Try again"]
+        })
+      }
+    }
+
     // Initialize Google Calendar for getting current events
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
