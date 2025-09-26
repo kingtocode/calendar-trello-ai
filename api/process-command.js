@@ -162,7 +162,18 @@ async function processWithAI(userInput, currentEvents = []) {
       apiKey: process.env.ANTHROPIC_API_KEY,
     })
 
+    // Get current date context for AI
+    const now = new Date()
+    const currentDate = now.toISOString().split('T')[0] // YYYY-MM-DD format
+    const currentDateTime = now.toISOString()
+
     const systemPrompt = `You are a smart task management AI that helps users with calendar events and Trello cards. Your job is to analyze user input and determine their intent.
+
+<current_context>
+CURRENT DATE: ${currentDate}
+CURRENT DATETIME: ${currentDateTime}
+CURRENT TIMEZONE: Server is UTC, but user's timezone will be provided separately
+</current_context>
 
 <capabilities>
 CREATE: Make new events/tasks
@@ -186,6 +197,13 @@ ${JSON.stringify(currentEvents.slice(0, 10), null, 2)}
 3. For CREATE: Parse dates, times, and determine if it's a timed event
 4. Check for scheduling conflicts with existing events
 5. Provide helpful, contextual suggestions
+
+IMPORTANT DATE PARSING:
+- Use the CURRENT_DATE context above to calculate relative dates
+- "today" = ${currentDate}
+- "tomorrow" = day after ${currentDate}
+- Always return dates in YYYY-MM-DDTHH:mm:ss format
+- Don't assume dates - use the current context provided
 </instructions>
 
 <response_format>
@@ -588,7 +606,12 @@ module.exports = async function handler(req, res) {
 
     // Process with AI
     const aiResult = await processWithAI(inputText, currentEvents)
-    console.log('AI Result:', aiResult)
+    console.log('🐛 CLAUDE AI RESULT:')
+    console.log('- Intent:', aiResult.intent)
+    console.log('- Start Date:', aiResult.data?.startDate)
+    console.log('- End Date:', aiResult.data?.endDate)
+    console.log('- Timezone:', aiResult.data?.timezone)
+    console.log('- Full AI Result:', JSON.stringify(aiResult, null, 2))
 
     // Handle different intents
     switch (aiResult.intent) {
