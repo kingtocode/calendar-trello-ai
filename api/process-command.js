@@ -1,18 +1,190 @@
 const { google } = require('googleapis')
 const Trello = require('trello')
 const Anthropic = require('@anthropic-ai/sdk')
-const { DateTime } = require('luxon')
 
-// Natural event creation handler
-async function handleNaturalCreate(claudeResponse, toolDetails, currentEvents, calendarEmail, board, res, userTimezone) {
+// Natural action detection from Claude's responses
+function detectActionsFromResponse(claudeResponse) {
+  const response = claudeResponse.toLowerCase()
+
+  const actions = {
+    create: false,
+    update: false,
+    delete: false,
+    search: false,
+    details: null
+  }
+
+  // Detect CREATE intentions
+  const createPhrases = [
+    "i'll create", "i'll add", "i'll schedule", "i'll set up",
+    "let me create", "let me add", "let me schedule",
+    "i can create", "i can add", "i can schedule",
+    "creating", "adding", "scheduling"
+  ]
+
+  // Detect UPDATE intentions
+  const updatePhrases = [
+    "i'll move", "i'll change", "i'll update", "i'll reschedule",
+    "let me move", "let me change", "let me update", "let me reschedule",
+    "i can move", "i can change", "i can update", "i can reschedule",
+    "moving", "changing", "updating", "rescheduling"
+  ]
+
+  // Detect DELETE intentions
+  const deletePhrases = [
+    "i'll cancel", "i'll remove", "i'll delete",
+    "let me cancel", "let me remove", "let me delete",
+    "i can cancel", "i can remove", "i can delete",
+    "canceling", "removing", "deleting"
+  ]
+
+  // Check for action intentions
+  if (createPhrases.some(phrase => response.includes(phrase))) {
+    actions.create = true
+  }
+
+  if (updatePhrases.some(phrase => response.includes(phrase))) {
+    actions.update = true
+  }
+
+  if (deletePhrases.some(phrase => response.includes(phrase))) {
+    actions.delete = true
+  }
+
+  // Extract details from the response (everything after action phrases)
+  const allActionPhrases = [...createPhrases, ...updatePhrases, ...deletePhrases]
+  for (const phrase of allActionPhrases) {
+    const phraseIndex = response.indexOf(phrase)
+    if (phraseIndex !== -1) {
+      // Extract text after the action phrase
+      const afterPhrase = claudeResponse.substring(phraseIndex + phrase.length).trim()
+      if (afterPhrase.length > 0) {
+        actions.details = afterPhrase.split('.')[0].trim() // Get first sentence
+      }
+      break
+    }
+  }
+
+  return actions
+}
+
+// Parse event details from natural text
+function parseNaturalEventDetails(text, userTimezone) {
+  console.log('🔍 Parsing natural event details:', text)
+
+  const now = new Date()
+  let startDate = new Date()
+  let endDate = new Date(startDate.getTime() + 60 * 60 * 1000) // Default 1 hour
+  let title = text
+  let isEvent = false
+
+  // Enhanced date detection
+  const datePatterns = [
+    { pattern: /\btoday\b/i, offset: 0 },
+    { pattern: /\btomorrow\b/i, offset: 1 },
+    { pattern: /\bnext week\b/i, offset: 7 },
+    { pattern: /\bmонday\b/i, weekday: 1 },
+    { pattern: /\btuesday\b/i, weekday: 2 },
+    { pattern: /\bwednesday\b/i, weekday: 3 },
+    { pattern: /\bthursday\b/i, weekday: 4 },
+    { pattern: /\bfriday\b/i, weekday: 5 },
+    { pattern: /\bsaturday\b/i, weekday: 6 },
+    { pattern: /\bsunday\b/i, weekday: 0 },
+  ]
+
+  // Enhanced time detection
+  const timePattern = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\b/g
+  const timeMatches = [...text.matchAll(timePattern)]
+
+  // Find date
+  for (const datePattern of datePatterns) {
+    if (datePattern.pattern.test(text)) {
+      if (datePattern.offset !== undefined) {
+        startDate = new Date()
+        startDate.setDate(startDate.getDate() + datePattern.offset)
+      } else if (datePattern.weekday !== undefined) {
+        startDate = new Date()
+        const days = (datePattern.weekday + 7 - startDate.getDay()) % 7
+        if (days === 0) days = 7 // Next week if it's the same day
+        startDate.setDate(startDate.getDate() + days)
+      }
+      break
+    }
+  }
+
+  // Find time
+  if (timeMatches.length > 0) {
+    const timeMatch = timeMatches[0]
+    let hours = parseInt(timeMatch[1])
+    const minutes = parseInt(timeMatch[2] || '0')
+    const period = timeMatch[3]
+
+    if (period && period.toLowerCase() === 'pm' && hours !== 12) {
+      hours += 12
+    } else if (period && period.toLowerCase() === 'am' && hours === 12) {
+      hours = 0
+    }
+
+    startDate.setHours(hours, minutes, 0, 0)
+    isEvent = true
+  }
+
+  endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+
+  // Clean up title by removing date/time references
+  title = text
+    .replace(/\b(today|tomorrow|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, '')
+    .replace(/\b\d{1,2}(?::\d{2})?\s*(am|pm|AM|PM)?\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  // Extract event name from common patterns
+  const eventNamePatterns = [
+    /(?:appointment|meeting|session)\s+(?:for|with)?\s*(.+)/i,
+    /(.+)\s+(?:appointment|meeting|session)/i,
+    /(?:schedule|create|add)\s+(.+)/i,
+    /(.+)/i // Fallback - use the whole cleaned text
+  ]
+
+  for (const pattern of eventNamePatterns) {
+    const match = title.match(pattern)
+    if (match && match[1] && match[1].trim()) {
+      title = match[1].trim()
+      break
+    }
+  }
+
+  if (!title || title.length < 2) {
+    title = 'New Event'
+  }
+
+  return {
+    title: title.charAt(0).toUpperCase() + title.slice(1), // Capitalize first letter
+    startDate,
+    endDate,
+    isEvent,
+    timezone: userTimezone || 'America/Chicago',
+    description: text
+  }
+}
+
+// Execute CREATE action
+async function executeCreateAction(details, currentEvents, calendarEmail, board, userTimezone) {
   try {
-    console.log('🔧 Creating event naturally from:', toolDetails)
+    console.log('🎯 Executing CREATE action with details:', details)
 
-    // Simple parsing of tool details - Claude will provide something like "Dentist appointment, tomorrow 2 PM"
-    const taskInput = toolDetails.trim()
+    const eventDetails = parseNaturalEventDetails(details, userTimezone)
+    console.log('📅 Parsed event details:', eventDetails)
 
-    // Use existing parseTaskInput logic for now
-    const parsedTask = parseTaskInput(taskInput, userTimezone)
+    // Check for conflicts
+    const conflicts = currentEvents.filter(event => {
+      const eventStart = new Date(event.start.dateTime || event.start.date)
+      const eventEnd = new Date(event.end.dateTime || event.end.date)
+      const newStart = eventDetails.startDate
+      const newEnd = eventDetails.endDate
+
+      return (newStart < eventEnd && newEnd > eventStart)
+    })
 
     // Initialize Google Calendar
     const oauth2Client = new google.auth.OAuth2(
@@ -29,19 +201,17 @@ async function handleNaturalCreate(claudeResponse, toolDetails, currentEvents, c
 
     // Create calendar event
     const eventData = {
-      summary: parsedTask.title,
-      description: `Task created using AI`,
+      summary: eventDetails.title,
+      description: `Created by AI assistant: ${eventDetails.description}`,
       start: {
-        dateTime: formatDateTimeForCalendar(parsedTask.startDate, parsedTask.timezone),
-        timeZone: parsedTask.timezone,
+        dateTime: eventDetails.startDate.toISOString(),
+        timeZone: eventDetails.timezone,
       },
       end: {
-        dateTime: formatDateTimeForCalendar(parsedTask.endDate, parsedTask.timezone),
-        timeZone: parsedTask.timezone,
+        dateTime: eventDetails.endDate.toISOString(),
+        timeZone: eventDetails.timezone,
       },
-      attendees: [
-        { email: calendarEmail }
-      ]
+      attendees: [{ email: calendarEmail }]
     }
 
     const calendarResponse = await calendar.events.insert({
@@ -49,137 +219,50 @@ async function handleNaturalCreate(claudeResponse, toolDetails, currentEvents, c
       resource: eventData,
     })
 
-    const calendarEvent = calendarResponse.data
-
     // Create Trello card
     const trello = new Trello(process.env.TRELLO_API_KEY, process.env.TRELLO_TOKEN)
     const listId = getBoardListId(board)
 
     const trelloCard = await trello.addCard(
-      parsedTask.title,
-      `📅 Scheduled for: ${parsedTask.startDate.toLocaleString()}\n🔗 Calendar Event: ${calendarEvent.htmlLink}\n📋 Board: ${board}`,
+      eventDetails.title,
+      `📅 ${eventDetails.startDate.toLocaleString()}\n🔗 ${calendarResponse.data.htmlLink}`,
       listId
     )
 
-    return res.json({
+    return {
       success: true,
-      response: `✅ ${claudeResponse}`,
-      calendarEvent: {
-        id: calendarEvent.id,
-        htmlLink: calendarEvent.htmlLink,
-        summary: calendarEvent.summary
-      },
-      trelloCard: {
-        id: trelloCard.id,
-        url: trelloCard.url,
-        name: trelloCard.name
-      },
-      suggestions: ["Create another event", "View your calendar", "Edit this event"]
-    })
+      calendarEvent: calendarResponse.data,
+      trelloCard: trelloCard,
+      conflicts: conflicts,
+      eventDetails: eventDetails
+    }
 
   } catch (error) {
-    console.error('Error in natural create:', error)
-    return res.json({
+    console.error('❌ CREATE action failed:', error)
+    return {
       success: false,
-      response: `❌ Sorry, I couldn't create that event. ${error.message}`,
-      suggestions: ["Try again with more details", "Switch to Simple mode"]
-    })
-  }
-}
-
-// Natural event update handler (placeholder for now)
-async function handleNaturalUpdate(claudeResponse, toolDetails, currentEvents, calendarEmail, res) {
-  return res.json({
-    success: true,
-    response: `✅ ${claudeResponse}\n\n(Update functionality will be implemented next!)`,
-    suggestions: ["View your events", "Create a new event"]
-  })
-}
-
-// Natural event delete handler (placeholder for now)
-async function handleNaturalDelete(claudeResponse, toolDetails, currentEvents, calendarEmail, res) {
-  return res.json({
-    success: true,
-    response: `✅ ${claudeResponse}\n\n(Delete functionality will be implemented next!)`,
-    suggestions: ["View your events", "Create a new event"]
-  })
-}
-
-// Simple task parsing (reusing existing logic for now)
-function parseTaskInput(taskDescription, userTimezone = null) {
-  const now = new Date()
-  let startDate = new Date()
-  let endDate = new Date(startDate.getTime() + 60 * 60 * 1000) // Default 1 hour duration
-  let isEvent = false
-
-  // Detect time patterns
-  const timePattern = /(\d{1,2}):?(\d{2})?\s*(AM|PM|am|pm)?/gi
-  const datePattern = /(today|tomorrow|next\s+\w+|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi
-
-  const timeMatch = taskDescription.match(timePattern)
-  const dateMatch = taskDescription.match(datePattern)
-
-  if (dateMatch) {
-    const dateStr = dateMatch[0].toLowerCase()
-    if (dateStr === 'today') {
-      startDate = new Date()
-    } else if (dateStr === 'tomorrow') {
-      startDate = new Date()
-      startDate.setDate(startDate.getDate() + 1)
+      error: error.message
     }
   }
+}
 
-  if (timeMatch) {
-    const timeStr = timeMatch[0]
-    const [, hours, minutes = '00', period] = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM|am|pm)?/i) || []
-
-    let hour = parseInt(hours)
-    if (period && period.toLowerCase() === 'pm' && hour !== 12) {
-      hour += 12
-    } else if (period && period.toLowerCase() === 'am' && hour === 12) {
-      hour = 0
-    }
-
-    startDate.setHours(hour, parseInt(minutes), 0, 0)
-    isEvent = true
-  }
-
-  endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
-
-  // Create cleaner title
-  let title = taskDescription
-    .replace(/\b(today|tomorrow)\b/gi, '')
-    .replace(/at \d{1,2}:?\d{0,2}\s*(AM|PM|am|pm)?/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  if (!title) {
-    title = taskDescription
-  }
-
+// Execute UPDATE action (placeholder for now)
+async function executeUpdateAction(details, currentEvents, calendarEmail) {
+  console.log('🔄 UPDATE action detected:', details)
   return {
-    title,
-    description: taskDescription,
-    startDate,
-    endDate,
-    isEvent,
-    timezone: userTimezone || process.env.APP_TIMEZONE || 'America/Chicago'
+    success: true,
+    message: "Update functionality will be implemented next!",
+    details: details
   }
 }
 
-function formatDateTimeForCalendar(date, timezone) {
-  try {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    const seconds = String(date.getSeconds()).padStart(2, '0')
-
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
-  } catch (error) {
-    console.warn('Date formatting failed:', error)
-    return date.toISOString()
+// Execute DELETE action (placeholder for now)
+async function executeDeleteAction(details, currentEvents, calendarEmail) {
+  console.log('🗑️ DELETE action detected:', details)
+  return {
+    success: true,
+    message: "Delete functionality will be implemented next!",
+    details: details
   }
 }
 
@@ -190,7 +273,6 @@ function getBoardListId(boardName) {
     work: process.env.TRELLO_WORK_BOARD_LIST_ID,
     project: process.env.TRELLO_PROJECT_BOARD_LIST_ID
   }
-
   return boardMapping[boardName] || boardMapping[process.env.DEFAULT_TRELLO_BOARD] || boardMapping.kings
 }
 
@@ -218,15 +300,14 @@ module.exports = async function handler(req, res) {
 
     const userTimezone = timezone || process.env.APP_TIMEZONE || 'America/Chicago'
 
-    // Check for simple LIST queries first (fallback)
+    // Keep the simple LIST fallback for basic queries
     const lowerInput = inputText.toLowerCase()
     const listKeywords = ['when', 'what', 'show', 'list', 'schedule', 'do i have', 'am i', 'where', 'time']
     const isSimpleListQuery = listKeywords.some(keyword => lowerInput.includes(keyword))
 
     if (isSimpleListQuery) {
-      console.log('🔍 Using fallback LIST handler for:', inputText)
+      console.log('🔍 Using direct calendar search for:', inputText)
 
-      // Get calendar events
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
@@ -249,30 +330,21 @@ module.exports = async function handler(req, res) {
         })
 
         const events = eventsResponse.data.items || []
-
-        // Simple search
         const searchTerms = inputText.toLowerCase().split(' ')
         const matchingEvents = events.filter(event => {
           const title = (event.summary || '').toLowerCase()
           const description = (event.description || '').toLowerCase()
-          return searchTerms.some(term =>
-            title.includes(term) || description.includes(term)
-          )
+          return searchTerms.some(term => title.includes(term) || description.includes(term))
         })
 
         if (matchingEvents.length > 0) {
           const eventSummaries = matchingEvents.slice(0, 3).map(event => {
             const date = new Date(event.start.dateTime || event.start.date)
             const formattedDate = date.toLocaleDateString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric'
+              weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
             })
             const formattedTime = date.toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true
+              hour: 'numeric', minute: '2-digit', hour12: true
             })
             return `• ${event.summary} - ${formattedDate} at ${formattedTime}`
           }).join('\n')
@@ -290,10 +362,10 @@ module.exports = async function handler(req, res) {
           })
         }
       } catch (calError) {
-        console.error('Calendar error in fallback:', calError)
+        console.error('Calendar error:', calError)
         return res.json({
           success: true,
-          response: "I had trouble accessing your calendar events. Please try again.",
+          response: "I had trouble accessing your calendar. Please try again.",
           suggestions: ["Try again", "Create a new event"]
         })
       }
@@ -326,7 +398,7 @@ module.exports = async function handler(req, res) {
       console.error('Could not fetch events for AI context:', eventError)
     }
 
-    // Call Claude AI with conversational prompt
+    // Call Claude AI with completely natural prompt
     if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your_anthropic_api_key_here') {
       throw new Error('Anthropic API key not configured')
     }
@@ -335,116 +407,109 @@ module.exports = async function handler(req, res) {
       apiKey: process.env.ANTHROPIC_API_KEY,
     })
 
-    // Get current date context
     const now = new Date()
     const userNow = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }))
     const currentDate = userNow.toISOString().split('T')[0]
     const currentDateTime = userNow.toISOString()
 
-    const systemPrompt = `You are Claude, an intelligent AI calendar assistant with a natural, helpful personality. You can see the user's calendar events and help them manage their schedule through natural conversation.
+    const systemPrompt = `You are Claude, a friendly and intelligent AI calendar assistant. You can see the user's calendar and help them manage their schedule naturally.
 
-<current_context>
-📅 Today is: ${currentDate}
-🕒 Current time: ${currentDateTime}
-🌍 User timezone: ${userTimezone}
-</current_context>
+Today is ${currentDate} and the current time is ${currentDateTime} in ${userTimezone} timezone.
 
-<your_capabilities>
+Here are their upcoming calendar events:
+${JSON.stringify(currentEvents.slice(0, 8), null, 2)}
+
 You can help with:
-- 🔍 Finding events ("When is my pickleball?")
-- 📝 Creating new events ("Schedule dentist tomorrow 2 PM")
-- ✏️ Updating events ("Move my meeting to 3 PM")
-- 🗑️ Deleting events ("Cancel my yoga class")
-- 📋 Creating Trello cards for tasks
-- 💡 Suggesting better scheduling
-</your_capabilities>
+• Finding events and answering questions about their schedule
+• Creating new events and appointments
+• Moving or updating existing events
+• Canceling events they no longer need
+• Suggesting better scheduling and avoiding conflicts
 
-<user_calendar>
-Here are their upcoming events:
-${JSON.stringify(currentEvents.slice(0, 10), null, 2)}
-</user_calendar>
+Just respond naturally as a helpful AI assistant. Be conversational, reference specific events by name, and offer to help with any calendar-related tasks. If you want to take an action like creating, updating, or deleting an event, just say so naturally in your response.
 
-<conversation_guidelines>
-- Be conversational and natural, like a smart personal assistant
-- Reference specific events by name when discussing them
-- Always use ${userTimezone} timezone for dates/times
-- For dates: "today" = ${currentDate}, "tomorrow" = next day
-- Ask clarifying questions if requests are unclear
-- Offer helpful suggestions and point out conflicts
-- Be proactive - suggest related actions when appropriate
+Examples of natural responses:
+• "I can see you have pickleball on Thursday at 6 PM. Would you like me to move it to a different time?"
+• "I'll create a dentist appointment for you tomorrow at 2 PM. Let me add that to your calendar."
+• "I notice you have a conflict with your meeting at 3 PM. Should I reschedule one of them?"
 
-When you need to perform actions, indicate them naturally:
-- "Let me check your calendar..." [SEARCH]
-- "I'll create that event..." [CREATE: event details]
-- "I'll move that meeting..." [UPDATE: event_id, changes]
-- "I'll cancel that..." [DELETE: event_id]
-</conversation_guidelines>
+Be helpful, conversational, and proactive in offering calendar assistance.`
 
-Respond naturally as Claude, the AI assistant. Be helpful and conversational.`
-
-    console.log('🤖 Calling Claude with conversational prompt')
+    console.log('🤖 Calling Claude with natural prompt')
 
     const completion = await anthropic.messages.create({
       model: "claude-3-5-haiku-20241022",
       max_tokens: 1000,
-      temperature: 0.3,
+      temperature: 0.4,
       system: systemPrompt,
       messages: [
         { role: "user", content: inputText }
       ]
     })
 
-    const rawResponse = completion.content[0].text.trim()
-    console.log('🤖 Claude responded:', rawResponse)
+    const claudeResponse = completion.content[0].text.trim()
+    console.log('🤖 Claude responded naturally:', claudeResponse)
 
-    // Parse Claude's natural response for tool usage
-    const toolMatches = {
-      search: rawResponse.match(/\[SEARCH\]/i),
-      create: rawResponse.match(/\[CREATE:([^\]]+)\]/i),
-      update: rawResponse.match(/\[UPDATE:([^\]]+)\]/i),
-      delete: rawResponse.match(/\[DELETE:([^\]]+)\]/i)
+    // Detect if Claude wants to take actions from natural language
+    const actions = detectActionsFromResponse(claudeResponse)
+    console.log('🎯 Detected actions:', actions)
+
+    // Execute actions if detected
+    let actionResults = null
+
+    if (actions.create && actions.details) {
+      console.log('🎯 Executing CREATE action...')
+      actionResults = await executeCreateAction(
+        actions.details,
+        currentEvents,
+        calendarEmail,
+        board,
+        userTimezone
+      )
+    } else if (actions.update && actions.details) {
+      console.log('🎯 Executing UPDATE action...')
+      actionResults = await executeUpdateAction(actions.details, currentEvents, calendarEmail)
+    } else if (actions.delete && actions.details) {
+      console.log('🎯 Executing DELETE action...')
+      actionResults = await executeDeleteAction(actions.details, currentEvents, calendarEmail)
     }
 
-    // If no tools detected, return natural conversation
-    if (!Object.values(toolMatches).some(match => match)) {
-      console.log('🗣️ Pure conversational response')
-      return res.json({
-        success: true,
-        response: `✅ ${rawResponse}`,
-        intent: 'CONVERSATION',
-        suggestions: ["Create a new event", "Ask about your schedule", "Update an event"]
-      })
+    // Prepare response
+    let response = `✅ ${claudeResponse}`
+    let suggestions = ["Ask about your schedule", "Create a new event", "Update an event"]
+
+    // Add action results to response if any
+    if (actionResults) {
+      if (actionResults.success) {
+        if (actionResults.calendarEvent) {
+          response += `\n\n📅 Successfully created: "${actionResults.eventDetails.title}"\n🔗 Calendar: ${actionResults.calendarEvent.htmlLink}`
+
+          if (actionResults.conflicts && actionResults.conflicts.length > 0) {
+            response += `\n\n⚠️ Note: This overlaps with ${actionResults.conflicts.length} existing event(s).`
+          }
+
+          suggestions = ["Create another event", "View your calendar", "Edit this event"]
+        } else if (actionResults.message) {
+          response += `\n\n${actionResults.message}`
+        }
+      } else {
+        response += `\n\n❌ Sorry, I encountered an issue: ${actionResults.error}`
+        suggestions = ["Try again with different details", "View your events"]
+      }
     }
 
-    // Handle tool usage
-    if (toolMatches.create) {
-      console.log('🔧 Claude wants to CREATE event')
-      return await handleNaturalCreate(rawResponse, toolMatches.create[1], currentEvents, calendarEmail, board, res, userTimezone)
-    }
-
-    if (toolMatches.update) {
-      console.log('🔧 Claude wants to UPDATE event')
-      return await handleNaturalUpdate(rawResponse, toolMatches.update[1], currentEvents, calendarEmail, res)
-    }
-
-    if (toolMatches.delete) {
-      console.log('🔧 Claude wants to DELETE event')
-      return await handleNaturalDelete(rawResponse, toolMatches.delete[1], currentEvents, calendarEmail, res)
-    }
-
-    // Default: return conversational response
     return res.json({
       success: true,
-      response: `✅ ${rawResponse}`,
-      intent: 'CONVERSATION',
-      suggestions: ["Create a new event", "Ask about your schedule"]
+      response: response,
+      suggestions: suggestions,
+      actionsTaken: actionResults ? Object.keys(actions).filter(key => actions[key] && key !== 'details') : []
     })
 
   } catch (error) {
-    console.error('Error processing command:', error)
+    console.error('Error in AI processing:', error)
     console.error('Error stack:', error.stack)
 
-    if (error.message && (error.message.includes('quota') || error.message.includes('billing') || error.message.includes('exceeded'))) {
+    if (error.message && (error.message.includes('quota') || error.message.includes('billing'))) {
       return res.json({
         success: false,
         response: "⚠️ AI quota limit reached. Please check your Anthropic account billing or switch to Simple mode.",
