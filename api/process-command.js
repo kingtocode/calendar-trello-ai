@@ -407,10 +407,10 @@ IMPORTANT: Return ONLY the JSON response, no other text.`
 }
 
 function findEventByKeywords(events, keywords, originalUserInput = '') {
-  if (!events || events.length === 0) return null
+  if (!events || events.length === 0) return { event: null, multipleMatches: [] }
   if (!keywords || keywords.length === 0) {
     // If no specific keywords, try to find by matching against the full user input
-    if (!originalUserInput) return null
+    if (!originalUserInput) return { event: null, multipleMatches: [] }
     const inputWords = originalUserInput.toLowerCase().split(' ').filter(word => word.length > 2)
     keywords = inputWords
   }
@@ -447,9 +447,31 @@ function findEventByKeywords(events, keywords, originalUserInput = '') {
     return { event, score }
   })
 
-  // Return the highest scoring event if it has a reasonable score
-  const bestMatch = scoredEvents.sort((a, b) => b.score - a.score)[0]
-  return bestMatch && bestMatch.score > 0 ? bestMatch.event : null
+  // Filter events with reasonable scores
+  const goodMatches = scoredEvents.filter(match => match.score > 0).sort((a, b) => b.score - a.score)
+
+  if (goodMatches.length === 0) {
+    return { event: null, multipleMatches: [] }
+  }
+
+  if (goodMatches.length === 1) {
+    return { event: goodMatches[0].event, multipleMatches: [] }
+  }
+
+  // Check if there are multiple events with the same high score
+  const topScore = goodMatches[0].score
+  const topMatches = goodMatches.filter(match => match.score === topScore)
+
+  if (topMatches.length > 1) {
+    // Multiple events with same score - ask for clarification
+    return {
+      event: null,
+      multipleMatches: topMatches.map(m => m.event)
+    }
+  }
+
+  // Single clear winner
+  return { event: goodMatches[0].event, multipleMatches: [] }
 }
 
 async function handleEditEvent(aiResult, calendarEmail, currentEvents, res, userInput = '') {
@@ -467,8 +489,27 @@ async function handleEditEvent(aiResult, calendarEmail, currentEvents, res, user
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
 
     // Find the event to edit based on search keywords and original user input
-    const eventToEdit = findEventByKeywords(currentEvents, aiResult.data.searchKeywords, userInput)
+    const findResult = findEventByKeywords(currentEvents, aiResult.data.searchKeywords, userInput)
 
+    if (findResult.multipleMatches.length > 0) {
+      // Multiple events found - ask user to be more specific
+      const eventList = findResult.multipleMatches.map(event => {
+        const startTime = new Date(event.start?.dateTime || event.start?.date).toLocaleString()
+        return `• "${event.title}" (${startTime})`
+      }).join('\n')
+
+      return res.json({
+        success: false,
+        response: `🤔 I found multiple events matching "${aiResult.data.searchKeywords?.join(' ') || 'your search'}":\n\n${eventList}\n\nPlease be more specific about which event you want to edit.`,
+        suggestions: [
+          "Include the date/time in your request",
+          "Use more specific keywords",
+          "Say something like 'edit dinner plan on Friday'"
+        ]
+      })
+    }
+
+    const eventToEdit = findResult.event
     if (!eventToEdit) {
       return res.json({
         success: false,
