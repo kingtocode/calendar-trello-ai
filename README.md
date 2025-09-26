@@ -34,30 +34,42 @@ npm run dev
 - **Natural Language Processing**: Speak naturally - "Dentist appointment tomorrow at 2 PM"
 - **Smart Text Input**: Type commands in plain English
 
-### 🤖 AI-Powered Intelligence (AI Mode)
+### 🤖 AI-Powered Intelligence (Advanced Mode)
+- **Claude Integration**: Uses Anthropic Claude 3.5 Haiku for superior reasoning
 - **Intent Recognition**: Understands CREATE, EDIT, DELETE, and LIST commands
+- **Intelligent Editing**: "Edit tomorrow's pickleball to 5 PM" works perfectly
+- **Timezone Detection**: Recognizes "CST", "EDT", "PST" etc. in your commands
 - **Conflict Detection**: Warns about scheduling conflicts with existing events
 - **Smart Suggestions**: Provides optimization recommendations and related tasks
 - **Context Awareness**: Knows your existing events and provides relevant responses
 - **Quota Handling**: Graceful fallback to Simple Mode if AI limits reached
 
-### 📝 Simple Mode (No AI Required)
+### 📝 Simple Mode (Default - Token-Free)
+- **Default Experience**: App starts in Simple mode to save AI costs
 - **Direct Task Creation**: Basic task parsing without AI overhead
-- **Reliable Fallback**: Always works even without OpenAI access
-- **Fast Processing**: Instant task creation
-- **Clear Mode Switching**: Intuitive toggle between modes
+- **Reliable & Fast**: Always works with instant task creation
+- **Smart Disclaimer**: Clear guidance on when to use AI mode
+- **Manual Editing**: Edit events via 📅 View Events → Edit button
 
 ### 📅 Calendar Integration
 - **Google Calendar Sync**: Automatically creates and manages calendar events
-- **Smart Scheduling**: Extracts dates, times, and creates proper event durations
-- **Event Editing**: Modify existing events with natural language commands
+- **Intelligent Editing**: AI mode can edit events: "move dentist to Friday"
+- **Manual Editing**: Simple mode users can edit via View Events → Edit
 - **Event Viewing**: Browse your upcoming calendar events
 - **Event Deletion**: Remove events directly from the app
+- **Clean Descriptions**: Professional "Task created using AI" instead of verbose prompts
 
 ### 📋 Trello Integration
 - **Multi-Board Support**: Supports Kings, Personal, Work, and Project boards
 - **Automatic Card Creation**: Creates Trello cards alongside calendar events
 - **Board Selection**: Choose which Trello board to add tasks to
+
+### 🌍 Advanced Timezone Handling
+- **Explicit Timezone Support**: "6 PM CST" creates events at correct Central Time
+- **Automatic Detection**: Recognizes CST, CDT, EST, EDT, PST, PDT, MST, MDT
+- **Custom APP_TIMEZONE**: Set default timezone via environment variable
+- **Browser Fallback**: Uses your browser's timezone when no explicit mention
+- **Server-Independent**: Works regardless of Vercel's server timezone
 
 ### 📱 Mobile-Friendly Design
 - **Responsive Layout**: Optimized for iPhone, Android, and tablets
@@ -78,35 +90,36 @@ npm run dev
 - **AI**: Anthropic Claude 3.5 Haiku for natural language processing
 - **Integrations**: Google Calendar API, Trello REST API
 - **Voice**: Web Speech API (browser-native)
+- **Timezone**: Intl.DateTimeFormat with custom APP_TIMEZONE support
 
 ## 🎯 Usage Examples
 
 ### 🤖 AI Mode Commands (Advanced)
 ```
-"Move my dentist appointment to Friday"
+"Move my dentist appointment to Friday at 3 PM CST"
+"Edit tomorrow's pickleball event to show as 5 PM"
+"Reschedule the team meeting to next Tuesday"
 "What's my schedule for tomorrow?"
 "Cancel my yoga class this week"
 "Find time for grocery shopping"
-"Add a 2-hour reminder to my meeting"
-"Edit the Metro Spice Mart event to end earlier"
 "Delete the trivia night event"
 ```
 
-### 📝 Simple Mode Tasks (Direct Creation)
+### 📝 Simple Mode Tasks (Default - Direct Creation)
 ```
-"Dentist appointment tomorrow at 2 PM"
+"Dentist appointment tomorrow at 2 PM CST"
 "Call mom this Sunday afternoon"
 "Grocery shopping tomorrow morning"
-"Yoga class on Friday at 6 PM"
+"Yoga class on Friday at 6 PM EDT"
 "Team standup meeting next Tuesday at 9 AM"
-"Pickle ball on Tuesday night, invite friends"
+"Pickleball on Tuesday night, invite friends"
 ```
 
 ### 🎤 Voice Examples
 Simply click the 🎤 Voice button and say:
-- "Schedule a doctor appointment for next week"
-- "Remind me to call the plumber tomorrow at 10"
-- "Cancel my gym session on Friday"
+- "Schedule a doctor appointment for next week at 2 PM CST"
+- "Remind me to call the plumber tomorrow at 10 AM"
+- "Edit my pickleball game to start at 5 PM" (AI Mode only)
 
 ## ⚙️ Setup Instructions
 
@@ -115,7 +128,10 @@ Simply click the 🎤 Voice button and say:
 **Environment Variables Required:**
 Set these in your Vercel dashboard → Project → Settings → Environment Variables:
 
-**OPTIONAL**: Add `APP_TIMEZONE` to set a default timezone for all events. Users can still override with explicit mentions like "6 PM CST".
+**NEW FEATURES:**
+- 🌍 **APP_TIMEZONE**: Set default timezone (e.g., America/Chicago) for consistent behavior
+- 🤖 **ANTHROPIC_API_KEY**: Required for AI Mode's intelligent editing and commands
+- 📝 **Simple Mode**: Works without ANTHROPIC_API_KEY (default mode)
 
 ```env
 # Google Calendar API Configuration
@@ -219,26 +235,33 @@ ngrok http 5174
 # Use provided HTTPS URL anywhere
 ```
 
-## 🚀 Recent Improvements
+## 🚀 Latest Improvements
 
-### ✅ **Fixed Network Errors**
-- Created all missing Vercel serverless API functions
-- Fixed "The string did not match the expected pattern" error
+### ✅ **Switched to Claude AI (Major Upgrade)**
+- Replaced OpenAI with Anthropic Claude 3.5 Haiku for superior performance
+- Better intent detection and more reliable JSON parsing
+- Cost-effective pricing and fewer quota issues
 
-### ✅ **Enhanced UX**
-- Mode toggle now shows action ("Switch to AI Mode" vs "Switch to Simple Mode")
-- Added current mode indicator
-- Improved mobile responsiveness
+### ✅ **Advanced Timezone Handling**
+- Fixed "6 PM CST → 11 PM" bug with comprehensive timezone support
+- Explicit timezone detection: CST, CDT, EST, EDT, PST, PDT automatically recognized
+- Custom APP_TIMEZONE environment variable for default timezone
+- Server-independent timezone handling (works regardless of Vercel's UTC servers)
 
-### ✅ **Complete Event Management**
-- Event viewing works properly
-- Event editing fully functional (PUT /api/events/[eventId])
-- Event deletion supported (DELETE /api/events/[eventId])
+### ✅ **Smart Default UX**
+- Simple Mode now default to save AI costs
+- Helpful disclaimer explains when to use AI vs Simple mode
+- Easy switching between modes with clear guidance
 
-### ✅ **Robust Error Handling**
-- Graceful AI quota handling with mode switching
-- Proper Google Calendar API error responses
-- CORS configured for all endpoints
+### ✅ **Intelligent Event Editing**
+- AI Mode: "Edit tomorrow's pickleball to 5 PM" actually works now
+- Manual editing via View Events → Edit for Simple Mode users
+- Clean event descriptions ("Task created using AI" instead of verbose prompts)
+
+### ✅ **Complete Infrastructure**
+- All Vercel serverless API functions working perfectly
+- Proper error handling and graceful AI quota management
+- CORS configured, mobile-responsive design
 
 ## 🔍 How It Works
 
