@@ -222,7 +222,7 @@ async function processWithAI(userInput, currentEvents = [], userTimezone = 'Amer
 <current_context>
 CURRENT DATE: ${currentDate}
 CURRENT DATETIME: ${currentDateTime}
-CURRENT TIMEZONE: Server is UTC, but user's timezone will be provided separately
+USER TIMEZONE: ${userTimezone} - USE THIS TIMEZONE FOR ALL DATE/TIME OPERATIONS
 </current_context>
 
 <capabilities>
@@ -254,6 +254,7 @@ IMPORTANT DATE PARSING:
 - "tomorrow" = day after ${currentDate}
 - Always return dates in YYYY-MM-DDTHH:mm:ss format
 - Don't assume dates - use the current context provided
+- CRITICAL: ALWAYS use timezone: "${userTimezone}" - DO NOT use Pacific or any other timezone!
 </instructions>
 
 <response_format>
@@ -269,7 +270,7 @@ Respond with ONLY valid JSON in this exact format:
     "isEvent": true,
     "description": "Original user input",
     "searchKeywords": ["pickleball", "dentist"],
-    "timezone": "America/Los_Angeles"
+    "timezone": "America/Chicago"
   },
   "response": "I'll help you with that!",
   "suggestions": ["Consider adding travel time"],
@@ -452,7 +453,7 @@ async function handleEditEvent(aiResult, calendarEmail, currentEvents, res, user
 
     // Update time if provided
     if (aiResult.data.startDate) {
-      const timezone = aiResult.data.timezone || 'America/New_York'
+      const timezone = aiResult.data.timezone || userTimezone || 'America/Chicago'
       updateData.start = {
         dateTime: formatDateTimeForCalendar(new Date(aiResult.data.startDate), timezone),
         timeZone: timezone
