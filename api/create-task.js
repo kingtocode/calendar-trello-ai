@@ -213,7 +213,7 @@ module.exports = async function handler(req, res) {
     if (parsedTask.isEvent) {
       const eventData = {
         summary: parsedTask.title,
-        description: `Task created via AI Assistant: ${parsedTask.description}`,
+        description: `Task created using AI`,
         start: {
           dateTime: formatDateTimeForCalendar(parsedTask.startDate, parsedTask.timezone),
           timeZone: parsedTask.timezone,
@@ -243,7 +243,7 @@ module.exports = async function handler(req, res) {
 
     const trelloCard = await trello.addCard(
       parsedTask.title,
-      `${parsedTask.description}\n\n${parsedTask.isEvent ? `📅 Scheduled for: ${parsedTask.startDate.toLocaleString()}` : '📝 Task created via AI Assistant'}\n\n${calendarEvent ? `🔗 Calendar Event: ${calendarEvent.htmlLink}` : ''}\n\n📋 Board: ${board}`,
+      `${parsedTask.isEvent ? `📅 Scheduled for: ${parsedTask.startDate.toLocaleString()}` : '📝 Task created using AI'}\n\n${calendarEvent ? `🔗 Calendar Event: ${calendarEvent.htmlLink}` : ''}\n\n📋 Board: ${board}`,
       listId
     )
 

@@ -433,7 +433,7 @@ async function handleCreateTask(aiResult, calendarEmail, board, res) {
     if (taskData.isEvent) {
       const eventData = {
         summary: taskData.title,
-        description: `Task created via AI Assistant: ${taskData.description}`,
+        description: `Task created using AI`,
         start: {
           dateTime: formatDateTimeForCalendar(new Date(taskData.startDate), taskData.timezone),
           timeZone: taskData.timezone,
@@ -462,7 +462,7 @@ async function handleCreateTask(aiResult, calendarEmail, board, res) {
 
     const trelloCard = await trello.addCard(
       taskData.title,
-      `${taskData.description}\n\n${taskData.isEvent ? `📅 Scheduled for: ${new Date(taskData.startDate).toLocaleString()}` : '📝 Task created via AI Assistant'}\n\n${calendarEvent ? `🔗 Calendar Event: ${calendarEvent.htmlLink}` : ''}\n\n📋 Board: ${board}`,
+      `${taskData.isEvent ? `📅 Scheduled for: ${new Date(taskData.startDate).toLocaleString()}` : '📝 Task created using AI'}\n\n${calendarEvent ? `🔗 Calendar Event: ${calendarEvent.htmlLink}` : ''}\n\n📋 Board: ${board}`,
       listId
     )
 
