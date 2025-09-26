@@ -44,6 +44,31 @@ function EventsList() {
     }
   }
 
+  const handleDeleteCard = async (cardId, cardName) => {
+    if (!confirm(`Are you sure you want to delete "${cardName}"?`)) {
+      return
+    }
+
+    try {
+      setStatus('🗑️ Deleting card...')
+      const response = await fetch(`/api/trello-cards?cardId=${cardId}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setStatus('✅ Card deleted successfully')
+        // Remove the card from local state
+        setTrelloCards(prevCards => prevCards.filter(card => card.id !== cardId))
+      } else {
+        setStatus(`❌ Error: ${data.error}`)
+      }
+    } catch (error) {
+      setStatus('❌ Error deleting card')
+    }
+  }
+
   const handleEdit = (event) => {
     // Convert to local time for datetime-local input
     const startDate = new Date(event.start)
@@ -233,6 +258,12 @@ function EventsList() {
                       >
                         🔗 Open in Trello
                       </a>
+                      <button
+                        onClick={() => handleDeleteCard(card.id, card.name)}
+                        className="btn-delete"
+                      >
+                        🗑️ Delete
+                      </button>
                     </div>
                   </div>
 

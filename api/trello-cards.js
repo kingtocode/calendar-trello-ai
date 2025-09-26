@@ -14,25 +14,45 @@ function getBoardListId(boardName) {
 module.exports = async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
   }
 
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'DELETE') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
   try {
-    const { board = process.env.DEFAULT_TRELLO_BOARD || 'kings', limit = 20 } = req.query
-
     if (!process.env.TRELLO_API_KEY || !process.env.TRELLO_TOKEN) {
       return res.status(500).json({ error: 'Trello API credentials not configured' })
     }
 
     const trello = new Trello(process.env.TRELLO_API_KEY, process.env.TRELLO_TOKEN)
+
+    // Handle DELETE request (delete card)
+    if (req.method === 'DELETE') {
+      const { cardId } = req.query
+
+      if (!cardId) {
+        return res.status(400).json({ error: 'Card ID is required for deletion' })
+      }
+
+      console.log('Deleting Trello card:', cardId)
+
+      await trello.deleteCard(cardId)
+
+      return res.json({
+        success: true,
+        message: 'Trello card deleted successfully',
+        cardId: cardId
+      })
+    }
+
+    // Handle GET request (fetch cards)
+    const { board = process.env.DEFAULT_TRELLO_BOARD || 'kings', limit = 20 } = req.query
     const listId = getBoardListId(board)
 
     if (!listId) {
