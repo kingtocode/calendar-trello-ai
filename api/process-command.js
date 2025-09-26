@@ -48,11 +48,18 @@ function parseTaskInput(taskDescription, userTimezone = null) {
   if (dateMatch) {
     const dateStr = dateMatch[0].toLowerCase()
 
+    console.log('🐛 DATE DEBUG - Processing date:')
+    console.log('- dateStr:', dateStr)
+    console.log('- Current date:', new Date().toString())
+    console.log('- Current date getDate():', new Date().getDate())
+
     if (dateStr === 'today') {
       startDate = new Date()
     } else if (dateStr === 'tomorrow') {
       startDate = new Date()
+      console.log('- Before setDate:', startDate.toString())
       startDate.setDate(startDate.getDate() + 1)
+      console.log('- After setDate:', startDate.toString())
     } else if (dateStr.includes('aug')) {
       const matches = dateStr.match(/aug\s+(\d+)(?:,\s+(\d+))?/)
       if (matches) {
