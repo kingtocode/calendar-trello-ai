@@ -292,10 +292,16 @@ IMPORTANT DATE PARSING:
 </instructions>
 
 <response_format>
-Respond with ONLY valid JSON in this exact format:
+For LIST queries (questions about existing events):
+- Respond naturally in conversational language
+- Search through the current_events and answer the user's question directly
+- Example: "You have pickleball on Tuesday at 6 PM and Thursday at 7 PM this week."
+- Be helpful and specific about what you find
 
+For CREATE/EDIT/DELETE operations:
+- Respond with valid JSON in this format:
 {
-  "intent": "CREATE|EDIT|DELETE|LIST",
+  "intent": "CREATE|EDIT|DELETE",
   "confidence": 0.9,
   "data": {
     "title": "Event title",
@@ -313,7 +319,9 @@ Respond with ONLY valid JSON in this exact format:
 }
 </response_format>
 
-IMPORTANT: Return ONLY the JSON response, no other text.`
+IMPORTANT:
+- For LIST queries: Respond in natural language directly
+- For CREATE/EDIT/DELETE: Return ONLY JSON, no other text`
 
     const completion = await anthropic.messages.create({
       model: "claude-3-5-haiku-20241022",
@@ -325,14 +333,36 @@ IMPORTANT: Return ONLY the JSON response, no other text.`
       ]
     })
 
+    const rawResponse = completion.content[0].text.trim()
     let aiResponse
+
+    // Check if this is a LIST query with natural language response
+    const lowerInput = userInput.toLowerCase()
+    const listKeywords = ['when', 'what', 'show', 'list', 'schedule', 'do i have', 'am i', 'where', 'time']
+    const isLikelyListQuery = listKeywords.some(keyword => lowerInput.includes(keyword))
+
+    // Try to parse as JSON first
     try {
-      aiResponse = JSON.parse(completion.content[0].text)
+      aiResponse = JSON.parse(rawResponse)
     } catch (parseError) {
+      console.log('Not JSON, checking if natural language response:', rawResponse)
+
+      // If it's likely a LIST query and not JSON, treat as natural language response
+      if (isLikelyListQuery && !rawResponse.startsWith('{')) {
+        console.log('Detected natural language LIST response')
+        return res.json({
+          success: true,
+          response: rawResponse,
+          intent: 'LIST',
+          events: currentEvents,
+          suggestions: ["Create a new event", "View all events", "Edit an event"]
+        })
+      }
+
+      // Otherwise, handle as parse error
       console.error('JSON parse error:', parseError)
-      console.log('Raw AI response:', completion.content[0].text)
-      // Attempt to detect intent from keywords when JSON parsing fails
-      const lowerInput = userInput.toLowerCase()
+      console.log('Raw AI response:', rawResponse)
+
       const editKeywords = ['edit', 'change', 'move', 'reschedule', 'update', 'modify']
       const isEditIntent = editKeywords.some(keyword => lowerInput.includes(keyword))
 
