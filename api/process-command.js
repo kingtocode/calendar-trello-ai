@@ -324,17 +324,27 @@ IMPORTANT:
 - For CREATE/EDIT/DELETE: Return ONLY JSON, no other text`
 
     console.log('🤖 Calling Anthropic API with input:', userInput)
-    const completion = await anthropic.messages.create({
-      model: "claude-3-5-haiku-20241022",
-      max_tokens: 1000,
-      temperature: 0.3,
-      system: systemPrompt,
-      messages: [
-        { role: "user", content: userInput }
-      ]
-    })
 
-    console.log('🤖 Anthropic API response received')
+    let completion
+    try {
+      completion = await anthropic.messages.create({
+        model: "claude-3-5-haiku-20241022",
+        max_tokens: 1000,
+        temperature: 0.3,
+        system: systemPrompt,
+        messages: [
+          { role: "user", content: userInput }
+        ]
+      })
+      console.log('🤖 Anthropic API response received')
+    } catch (apiError) {
+      console.error('🤖 Anthropic API error:', apiError)
+      return res.status(500).json({
+        error: 'AI service error',
+        details: apiError.message,
+        type: 'anthropic_api_error'
+      })
+    }
 
     const rawResponse = completion.content[0].text.trim()
     console.log('🤖 Raw response:', rawResponse)
