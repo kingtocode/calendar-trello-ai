@@ -3,7 +3,7 @@ const Trello = require('trello')
 const OpenAI = require('openai')
 
 // Helper functions (same as create-task.js)
-function parseTaskInput(taskDescription) {
+function parseTaskInput(taskDescription, userTimezone = null) {
   const now = new Date()
   let startDate = new Date()
   let endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
@@ -83,8 +83,22 @@ function parseTaskInput(taskDescription) {
     description: taskDescription,
     startDate,
     endDate,
-    isEvent
+    isEvent,
+    timezone: userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone
   }
+}
+
+function formatDateTimeForCalendar(date, timezone) {
+  // Format date to ISO string but maintain the timezone context
+  // by creating the date in the specified timezone
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
 }
 
 function getBoardListId(boardName) {
@@ -162,7 +176,7 @@ RESPOND WITH ONLY VALID JSON - NO OTHER TEXT.`
       aiResponse = {
         intent: "CREATE",
         confidence: 0.5,
-        data: parseTaskInput(userInput),
+        data: parseTaskInput(userInput, timezone),
         response: "I'll create that task for you!",
         suggestions: [],
         conflicts: [],
@@ -221,12 +235,12 @@ async function handleCreateTask(aiResult, calendarEmail, board, res) {
         summary: taskData.title,
         description: `Task created via AI Assistant: ${taskData.description}`,
         start: {
-          dateTime: new Date(taskData.startDate).toISOString(),
-          timeZone: 'America/New_York',
+          dateTime: formatDateTimeForCalendar(new Date(taskData.startDate), taskData.timezone),
+          timeZone: taskData.timezone,
         },
         end: {
-          dateTime: new Date(taskData.endDate).toISOString(),
-          timeZone: 'America/New_York',
+          dateTime: formatDateTimeForCalendar(new Date(taskData.endDate), taskData.timezone),
+          timeZone: taskData.timezone,
         },
         attendees: [
           { email: calendarEmail }
@@ -295,7 +309,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { userInput, command, calendarEmail, board = process.env.DEFAULT_TRELLO_BOARD } = req.body
+    const { userInput, command, calendarEmail, board = process.env.DEFAULT_TRELLO_BOARD, timezone } = req.body
     const inputText = userInput || command
 
     if (!inputText) {

@@ -2,7 +2,7 @@ const { google } = require('googleapis')
 const Trello = require('trello')
 
 // Helper functions
-function parseTaskInput(taskDescription) {
+function parseTaskInput(taskDescription, userTimezone = null) {
   const now = new Date()
   let startDate = new Date()
   let endDate = new Date(startDate.getTime() + 60 * 60 * 1000) // Default 1 hour duration
@@ -90,8 +90,22 @@ function parseTaskInput(taskDescription) {
     description: taskDescription,
     startDate,
     endDate,
-    isEvent
+    isEvent,
+    timezone: userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone
   }
+}
+
+function formatDateTimeForCalendar(date, timezone) {
+  // Format date to ISO string but maintain the timezone context
+  // by creating the date in the specified timezone
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
 }
 
 function getBoardListId(boardName) {
@@ -120,7 +134,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { task, calendarEmail, board = process.env.DEFAULT_TRELLO_BOARD } = req.body
+    const { task, calendarEmail, board = process.env.DEFAULT_TRELLO_BOARD, timezone } = req.body
 
     if (!task) {
       return res.status(400).json({ error: 'Task description is required' })
@@ -142,7 +156,7 @@ module.exports = async function handler(req, res) {
     // Initialize Trello
     const trello = new Trello(process.env.TRELLO_API_KEY, process.env.TRELLO_TOKEN)
 
-    const parsedTask = parseTaskInput(task)
+    const parsedTask = parseTaskInput(task, timezone)
     console.log('Parsed task:', parsedTask)
 
     let calendarEvent = null
@@ -151,12 +165,12 @@ module.exports = async function handler(req, res) {
         summary: parsedTask.title,
         description: `Task created via AI Assistant: ${parsedTask.description}`,
         start: {
-          dateTime: parsedTask.startDate.toISOString(),
-          timeZone: 'America/New_York',
+          dateTime: formatDateTimeForCalendar(parsedTask.startDate, parsedTask.timezone),
+          timeZone: parsedTask.timezone,
         },
         end: {
-          dateTime: parsedTask.endDate.toISOString(),
-          timeZone: 'America/New_York',
+          dateTime: formatDateTimeForCalendar(parsedTask.endDate, parsedTask.timezone),
+          timeZone: parsedTask.timezone,
         },
         attendees: [
           { email: calendarEmail }

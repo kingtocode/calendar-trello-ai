@@ -82,10 +82,11 @@ function App() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             userInput: task.trim(),
             calendarEmail: 'vincent2king8@gmail.com',
-            board: selectedBoard
+            board: selectedBoard,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
           }),
         })
 
@@ -126,10 +127,11 @@ function App() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             task: task.trim(),
             calendarEmail: 'vincent2king8@gmail.com',
-            board: selectedBoard
+            board: selectedBoard,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
           }),
         })
 
