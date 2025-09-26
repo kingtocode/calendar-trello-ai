@@ -681,6 +681,63 @@ async function handleCreateTask(aiResult, calendarEmail, board, res) {
   }
 }
 
+async function handleListEvents(aiResult, currentEvents, res) {
+  try {
+    console.log('🔍 Handling LIST intent with AI result:', aiResult)
+
+    // If AI provided a specific response about the events, use it
+    if (aiResult.response && !aiResult.response.includes('coming soon')) {
+      return res.json({
+        success: true,
+        response: aiResult.response,
+        events: currentEvents,
+        suggestions: aiResult.suggestions
+      })
+    }
+
+    // Fallback: provide a generic response with event list
+    const eventCount = currentEvents?.length || 0
+    let response = `Found ${eventCount} upcoming events.`
+
+    if (eventCount > 0) {
+      const eventSummaries = currentEvents.slice(0, 5).map(event => {
+        const date = new Date(event.start).toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric'
+        })
+        const time = new Date(event.start).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit'
+        })
+        return `• ${event.title} - ${date} at ${time}`
+      }).join('\n')
+
+      response += `\n\nUpcoming events:\n${eventSummaries}`
+
+      if (eventCount > 5) {
+        response += `\n... and ${eventCount - 5} more events.`
+      }
+    } else {
+      response = "No upcoming events found in your calendar."
+    }
+
+    return res.json({
+      success: true,
+      response: response,
+      events: currentEvents,
+      suggestions: aiResult.suggestions || ["Create a new event", "View all events"]
+    })
+
+  } catch (error) {
+    console.error('Error handling list events:', error)
+    return res.status(500).json({
+      error: 'Failed to list events',
+      details: error.message
+    })
+  }
+}
+
 module.exports = async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -747,12 +804,13 @@ module.exports = async function handler(req, res) {
         return await handleCreateTask(aiResult, calendarEmail, board, res)
       case 'EDIT':
         return await handleEditEvent(aiResult, calendarEmail, currentEvents, res, inputText)
-      case 'DELETE':
       case 'LIST':
-        // For now, return a simple response for these intents
+        return await handleListEvents(aiResult, currentEvents, res)
+      case 'DELETE':
+        // For now, return a simple response for delete intent
         return res.json({
           success: true,
-          response: aiResult.response + " (DELETE and LIST features coming soon!)",
+          response: aiResult.response + " (DELETE feature coming soon!)",
           suggestions: aiResult.suggestions
         })
       default:
