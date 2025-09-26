@@ -293,9 +293,13 @@ ${JSON.stringify(currentEvents.slice(0, 10), null, 2)}
 
 When you need to perform actions, indicate them naturally:
 - "Let me check your calendar..." [SEARCH]
-- "I'll create that event..." [CREATE: event details]
+- "I'll create that event..." [CREATE: Northwestern paperwork tomorrow at 3 PM]
 - "I'll move that meeting..." [UPDATE: event_id, changes]
 - "I'll cancel that..." [DELETE: event_id]
+
+IMPORTANT: For CREATE actions, put the complete task description with time/date in the brackets, like:
+[CREATE: Northwestern paperwork tomorrow at 3 PM]
+[CREATE: Dentist appointment next Tuesday at 2 PM]
 </conversation_guidelines>
 
 Respond naturally as Claude, the AI assistant. Be helpful and conversational.`

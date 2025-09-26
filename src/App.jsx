@@ -175,9 +175,12 @@ function App() {
   }
 
   const getStatusClass = () => {
-    if (status.includes('✅')) return 'success'
     if (status.includes('❌')) return 'error'
     if (isProcessing) return 'processing'
+    // In AI mode, successful responses don't have ✅ prefix anymore
+    // So we check if it's a successful AI response
+    if (aiMode && status && !status.includes('❌') && !isProcessing) return 'success'
+    if (status.includes('✅')) return 'success' // Legacy support
     return ''
   }
 
