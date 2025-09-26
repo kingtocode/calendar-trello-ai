@@ -8,7 +8,7 @@ function App() {
   const [status, setStatus] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [showEvents, setShowEvents] = useState(false)
-  const [aiMode, setAiMode] = useState(true)
+  const [aiMode, setAiMode] = useState(false) // Default to Simple mode to save AI tokens
   const [suggestions, setSuggestions] = useState([])
   const recognitionRef = useRef(null)
 
@@ -232,6 +232,14 @@ function App() {
             {isProcessing ? (aiMode ? '🤖 AI Processing...' : 'Processing...') : (aiMode ? '🤖 Ask AI' : 'Create Task')}
           </button>
         </div>
+
+        {/* Simple Mode Disclaimer */}
+        {!aiMode && (
+          <div className="simple-mode-notice">
+            💡 <strong>Simple Mode Active</strong> - Basic task creation without AI to save tokens.
+            For intelligent editing, switch to AI Mode above or edit existing events via <strong>📅 View Events → Edit</strong>.
+          </div>
+        )}
         </form>
       ) : (
         <EventsList />

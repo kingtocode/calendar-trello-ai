@@ -242,6 +242,19 @@ body {
   border: 1px solid rgba(144, 205, 244, 0.5);
 }
 
+/* Simple Mode Notice */
+.simple-mode-notice {
+  margin-top: 1rem;
+  padding: 0.875rem 1rem;
+  background: linear-gradient(135deg, #fef7e0, #faf089);
+  color: #744210;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 8px;
+  font-size: 0.825rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
 /* Examples Section */
 .examples {
   margin-top: 2rem;
