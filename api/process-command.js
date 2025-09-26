@@ -114,21 +114,20 @@ function parseTaskInput(taskDescription, userTimezone = null) {
 }
 
 function formatDateTimeForCalendar(date, timezone) {
-  // Google Calendar API works best with RFC3339 datetime strings
-  // The key insight: don't convert timezone, just format the local time correctly
+  // Try a different approach: convert to UTC properly
   try {
-    // The date object already contains the correct local time
-    // We just need to format it properly for the API
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    const seconds = String(date.getSeconds()).padStart(2, '0')
+    console.log('🐛 DEBUG formatDateTimeForCalendar:')
+    console.log('- Input date:', date)
+    console.log('- Input timezone:', timezone)
+    console.log('- Date toString():', date.toString())
+    console.log('- Date toISOString():', date.toISOString())
 
-    // Return the datetime in the format: YYYY-MM-DDTHH:mm:ss
-    // Google Calendar will interpret this in the timezone specified separately
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+    // Method 1: Simple format (what we were doing)
+    const simpleFormat = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`
+
+    console.log('- Simple format:', simpleFormat)
+
+    return simpleFormat
   } catch (error) {
     console.warn('Timezone formatting failed:', error)
     return date.toISOString()
@@ -466,12 +465,28 @@ async function handleCreateTask(aiResult, calendarEmail, board, res) {
         ]
       }
 
+      // DEBUG: Log exact data being sent to Google Calendar
+      console.log('🐛 TIMEZONE DEBUG - Sending to Google Calendar:')
+      console.log('- User input:', userInput)
+      console.log('- Original startDate:', taskData.startDate)
+      console.log('- Original timezone:', taskData.timezone)
+      console.log('- Formatted start dateTime:', eventData.start.dateTime)
+      console.log('- Formatted start timeZone:', eventData.start.timeZone)
+      console.log('- Full eventData:', JSON.stringify(eventData, null, 2))
+
       const calendarResponse = await calendar.events.insert({
         calendarId: 'primary',
         resource: eventData,
       })
 
       calendarEvent = calendarResponse.data
+
+      // DEBUG: Log what Google Calendar returned
+      console.log('🐛 TIMEZONE DEBUG - Google Calendar returned:')
+      console.log('- Event ID:', calendarEvent.id)
+      console.log('- Start:', calendarEvent.start)
+      console.log('- End:', calendarEvent.end)
+      console.log('- HTML Link:', calendarEvent.htmlLink)
     }
 
     const listId = getBoardListId(board)
