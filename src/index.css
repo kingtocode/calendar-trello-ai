@@ -115,38 +115,59 @@ body {
 }
 
 .board-selector {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .board-selector label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   font-weight: 600;
   color: #4a5568;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
+  text-align: center;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .board-select {
   width: 100%;
-  padding: 0.875rem 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 1rem;
-  background: white;
+  padding: 1rem 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
   cursor: pointer;
   outline: none;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   appearance: none;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 0.75rem center;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23667eea' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 1rem center;
   background-repeat: no-repeat;
-  background-size: 1.5em 1.5em;
-  padding-right: 2.5rem;
+  background-size: 1.25em 1.25em;
+  padding-right: 3rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  color: #4a5568;
+}
+
+.board-select:hover {
+  border-color: rgba(102, 126, 234, 0.5);
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
 }
 
 .board-select:focus {
   border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.25);
+  transform: translateY(-1px);
 }
 
 /* Input Container */
@@ -315,20 +336,51 @@ body {
 /* Events Container */
 .events-container {
   margin-top: 0;
-  padding: 0;
+  padding: 2rem;
   width: 100%;
-  min-height: 300px;
+  min-height: calc(100vh - 200px);
   overflow-x: hidden;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-radius: 24px;
+  backdrop-filter: blur(10px);
 }
 
 .events-header {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.5rem;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 2rem;
   flex-direction: column;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(25px);
+  border-radius: 24px;
+  padding: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.events-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+}
+
+.events-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
 }
 
 .tab-nav {
@@ -340,28 +392,64 @@ body {
 }
 
 .tab {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  color: #2d3748;
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #4a5568;
+  padding: 0.875rem 1.75rem;
+  border-radius: 15px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
 }
 
 .tab:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
-.tab.active {
+/* Calendar tab styling */
+.tab:first-child {
+  background: rgba(102, 126, 234, 0.15);
+  border-color: rgba(102, 126, 234, 0.3);
+  color: #667eea;
+}
+
+.tab:first-child:hover {
+  background: rgba(102, 126, 234, 0.25);
+  border-color: rgba(102, 126, 234, 0.5);
+}
+
+.tab:first-child.active {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: #667eea;
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* Trello tab styling */
+.tab:last-child {
+  background: rgba(0, 121, 191, 0.15);
+  border-color: rgba(0, 121, 191, 0.3);
+  color: #0079bf;
+}
+
+.tab:last-child:hover {
+  background: rgba(0, 121, 191, 0.25);
+  border-color: rgba(0, 121, 191, 0.5);
+}
+
+.tab:last-child.active {
+  background: linear-gradient(135deg, #0079bf 0%, #026aa7 100%);
+  color: white;
+  border-color: #0079bf;
+  box-shadow: 0 6px 25px rgba(0, 121, 191, 0.4);
 }
 
 .trello-card {
@@ -460,9 +548,16 @@ body {
 
 .events-title {
   color: #2d3748;
-  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  font-size: clamp(1.5rem, 3vw, 1.875rem);
   margin: 0;
-  font-weight: 600;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  letter-spacing: -0.025em;
+  position: relative;
 }
 
 .events-loading {
@@ -488,19 +583,30 @@ body {
 .events-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
 }
 
 .event-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(226, 232, 240, 0.6);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.8);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+}
+
+.event-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
 }
 
 /* Calendar event styling - subtle */
@@ -514,8 +620,14 @@ body {
 /* Removed clipboard icon - looked awkward */
 
 .event-card:hover {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+.event-card:not(.trello-card):hover {
+  border-left-color: #5a67d8;
+  box-shadow: 0 15px 50px rgba(102, 126, 234, 0.12);
 }
 
 .event-header {
