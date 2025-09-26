@@ -313,18 +313,53 @@ IMPORTANT: Return ONLY the JSON response, no other text.`
   }
 }
 
-function findEventByKeywords(events, keywords) {
-  if (!keywords || keywords.length === 0) return null
+function findEventByKeywords(events, keywords, originalUserInput = '') {
+  if (!events || events.length === 0) return null
+  if (!keywords || keywords.length === 0) {
+    // If no specific keywords, try to find by matching against the full user input
+    if (!originalUserInput) return null
+    const inputWords = originalUserInput.toLowerCase().split(' ').filter(word => word.length > 2)
+    keywords = inputWords
+  }
 
+  // Enhanced matching logic
   const searchTerms = keywords.map(k => k.toLowerCase())
 
-  return events.find(event => {
+  // Score each event based on keyword matches
+  const scoredEvents = events.map(event => {
     const title = (event.title || '').toLowerCase()
-    return searchTerms.some(term => title.includes(term))
+    const description = (event.description || '').toLowerCase()
+
+    let score = 0
+
+    // Exact phrase match gets highest score
+    searchTerms.forEach(term => {
+      if (title.includes(term)) score += 5
+      if (description.includes(term)) score += 2
+    })
+
+    // Partial word matches
+    const titleWords = title.split(' ')
+    const descWords = description.split(' ')
+
+    searchTerms.forEach(term => {
+      titleWords.forEach(word => {
+        if (word.includes(term) || term.includes(word)) score += 2
+      })
+      descWords.forEach(word => {
+        if (word.includes(term) || term.includes(word)) score += 1
+      })
+    })
+
+    return { event, score }
   })
+
+  // Return the highest scoring event if it has a reasonable score
+  const bestMatch = scoredEvents.sort((a, b) => b.score - a.score)[0]
+  return bestMatch && bestMatch.score > 0 ? bestMatch.event : null
 }
 
-async function handleEditEvent(aiResult, calendarEmail, currentEvents, res) {
+async function handleEditEvent(aiResult, calendarEmail, currentEvents, res, userInput = '') {
   try {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
@@ -338,8 +373,8 @@ async function handleEditEvent(aiResult, calendarEmail, currentEvents, res) {
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
 
-    // Find the event to edit based on search keywords
-    const eventToEdit = findEventByKeywords(currentEvents, aiResult.data.searchKeywords)
+    // Find the event to edit based on search keywords and original user input
+    const eventToEdit = findEventByKeywords(currentEvents, aiResult.data.searchKeywords, userInput)
 
     if (!eventToEdit) {
       return res.json({
@@ -554,7 +589,7 @@ module.exports = async function handler(req, res) {
       case 'CREATE':
         return await handleCreateTask(aiResult, calendarEmail, board, res)
       case 'EDIT':
-        return await handleEditEvent(aiResult, calendarEmail, currentEvents, res)
+        return await handleEditEvent(aiResult, calendarEmail, currentEvents, res, inputText)
       case 'DELETE':
       case 'LIST':
         // For now, return a simple response for these intents
