@@ -63,6 +63,9 @@ npm run dev
 - **Multi-Board Support**: Supports Kings, Personal, Work, and Project boards
 - **Automatic Card Creation**: Creates Trello cards alongside calendar events
 - **Board Selection**: Choose which Trello board to add tasks to
+- **Card Viewing**: Browse Trello cards from different boards in a clean interface
+- **Card Management**: View, open in Trello, and delete cards directly from the app
+- **Tabbed Interface**: Switch between Calendar Events and Trello Cards views seamlessly
 
 ### 🌍 Advanced Timezone Handling
 - **Explicit Timezone Support**: "6 PM CST" creates events at correct Central Time
@@ -74,6 +77,7 @@ npm run dev
 ### 📱 Mobile-Friendly Design
 - **Responsive Layout**: Optimized for iPhone, Android, and tablets
 - **Touch-Friendly**: Large buttons and intuitive mobile interface
+- **Clean Minimal UI**: Simple, focused design without distracting visual effects
 - **PWA Ready**: Install as app on mobile devices
 
 ## 🛠️ Current Architecture
@@ -83,6 +87,7 @@ npm run dev
 - `/api/process-command` - AI-powered task processing
 - `/api/events` - Get calendar events
 - `/api/events/[eventId]` - Edit/delete specific events
+- `/api/trello-cards` - Get and delete Trello cards from different boards
 
 ### **Technology Stack**
 - **Frontend**: React 18 + Vite 5, deployed to Vercel
@@ -236,6 +241,19 @@ ngrok http 5174
 ```
 
 ## 🚀 Latest Improvements
+
+### ✅ **Complete Trello Card Management**
+- Added comprehensive Trello card viewing with tabbed interface
+- Browse cards from different boards (Kings, Personal, Work, Project)
+- Delete cards directly from the app with confirmation
+- Clean card display with metadata, labels, and due dates
+- Seamless switching between Calendar Events and Trello Cards
+
+### ✅ **Clean Minimal Design**
+- Reverted from glassmorphism to clean, minimalist interface
+- Simple white backgrounds, subtle shadows, and clean borders
+- Focus on readability and functionality over visual effects
+- Improved mobile usability with straightforward design
 
 ### ✅ **Switched to Claude AI (Major Upgrade)**
 - Replaced OpenAI with Anthropic Claude 3.5 Haiku for superior performance
