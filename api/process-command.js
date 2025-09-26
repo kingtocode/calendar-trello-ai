@@ -152,7 +152,7 @@ function getBoardListId(boardName) {
   return boardMapping[boardName] || boardMapping[process.env.DEFAULT_TRELLO_BOARD] || boardMapping.kings
 }
 
-async function processWithAI(userInput, currentEvents = []) {
+async function processWithAI(userInput, currentEvents = [], userTimezone = 'America/Chicago') {
   try {
     if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your_anthropic_api_key_here') {
       throw new Error('Anthropic API key not configured')
@@ -162,10 +162,18 @@ async function processWithAI(userInput, currentEvents = []) {
       apiKey: process.env.ANTHROPIC_API_KEY,
     })
 
-    // Get current date context for AI
+    // Get current date context for AI - use USER's timezone, not server timezone
     const now = new Date()
-    const currentDate = now.toISOString().split('T')[0] // YYYY-MM-DD format
-    const currentDateTime = now.toISOString()
+    const userNow = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }))
+    const currentDate = userNow.toISOString().split('T')[0] // YYYY-MM-DD format
+    const currentDateTime = userNow.toISOString()
+
+    console.log('🐛 DATE CONTEXT DEBUG:')
+    console.log('- Server time (UTC):', now.toISOString())
+    console.log('- User timezone:', userTimezone)
+    console.log('- User local time:', userNow.toISOString())
+    console.log('- Sending to Claude - currentDate:', currentDate)
+    console.log('- Sending to Claude - currentDateTime:', currentDateTime)
 
     const systemPrompt = `You are a smart task management AI that helps users with calendar events and Trello cards. Your job is to analyze user input and determine their intent.
 
@@ -604,8 +612,8 @@ module.exports = async function handler(req, res) {
       end: event.end.dateTime || event.end.date
     }))
 
-    // Process with AI
-    const aiResult = await processWithAI(inputText, currentEvents)
+    // Process with AI - pass user's timezone for proper date context
+    const aiResult = await processWithAI(inputText, currentEvents, timezone)
     console.log('🐛 CLAUDE AI RESULT:')
     console.log('- Intent:', aiResult.intent)
     console.log('- Start Date:', aiResult.data?.startDate)
