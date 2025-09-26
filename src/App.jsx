@@ -9,7 +9,7 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showEvents, setShowEvents] = useState(false)
   const [aiMode, setAiMode] = useState(false) // Default to Simple mode to save AI tokens
-  const [suggestions, setSuggestions] = useState([])
+  // Suggestions now integrated into natural AI responses
   const [currentDateTime, setCurrentDateTime] = useState('')
   const recognitionRef = useRef(null)
 
@@ -95,7 +95,8 @@ function App() {
     }
 
     setIsProcessing(true)
-    setSuggestions([])
+    // Clear any previous status
+    setStatus('')
 
     try {
       if (aiMode) {
@@ -130,13 +131,10 @@ function App() {
               }, 2000)
             }
           }
-          if (result.suggestions && result.suggestions.length > 0) {
-            setSuggestions(result.suggestions)
-          }
-          if (result.hasConflicts && result.conflicts) {
-            const conflictSuggestions = result.conflicts.map(conflict => `⚠️ ${conflict}`)
-            setSuggestions(prev => [...conflictSuggestions, ...prev])
-          }
+          // Natural conversation mode - no separate suggestions needed
+          // Suggestions are now integrated into Claude's natural response
+          // In natural conversation mode, conflicts are included in Claude's response
+          // No need for separate conflict handling
           if (!result.quotaError) {
             setTask('')
           }
@@ -280,21 +278,7 @@ function App() {
         </div>
       )}
 
-      {!showEvents && suggestions.length > 0 && (
-        <div className="suggestions">
-          <h4>💡 AI Suggestions:</h4>
-          <ul>
-            {suggestions.map((suggestion, index) => (
-              <li 
-                key={index} 
-                className={`suggestion-item ${suggestion.startsWith('⚠️') ? 'conflict-warning' : ''}`}
-              >
-                {suggestion}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Suggestions are now integrated into Claude's natural conversation responses */}
 
       <div className="examples">
         <h3>Try saying something like:</h3>
