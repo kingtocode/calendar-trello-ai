@@ -113,8 +113,8 @@ function parseTaskInput(taskDescription, userTimezone = null) {
   let isEvent = false
 
   // Detect time patterns
-  const timePattern = /(\\d{1,2}):?(\\d{2})?\\s*(AM|PM|am|pm)?/gi
-  const datePattern = /(today|tomorrow|next\\s+\\w+|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi
+  const timePattern = /(\d{1,2}):?(\d{2})?\s*(AM|PM|am|pm)?/gi
+  const datePattern = /(today|tomorrow|next\s+\w+|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi
 
   const timeMatch = taskDescription.match(timePattern)
   const dateMatch = taskDescription.match(datePattern)
@@ -131,7 +131,7 @@ function parseTaskInput(taskDescription, userTimezone = null) {
 
   if (timeMatch) {
     const timeStr = timeMatch[0]
-    const [, hours, minutes = '00', period] = timeStr.match(/(\\d{1,2}):?(\\d{2})?\\s*(AM|PM|am|pm)?/i) || []
+    const [, hours, minutes = '00', period] = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM|am|pm)?/i) || []
 
     let hour = parseInt(hours)
     if (period && period.toLowerCase() === 'pm' && hour !== 12) {
@@ -148,9 +148,9 @@ function parseTaskInput(taskDescription, userTimezone = null) {
 
   // Create cleaner title
   let title = taskDescription
-    .replace(/\\b(today|tomorrow)\\b/gi, '')
-    .replace(/at \\d{1,2}:?\\d{0,2}\\s*(AM|PM|am|pm)?/gi, '')
-    .replace(/\\s+/g, ' ')
+    .replace(/\b(today|tomorrow)\b/gi, '')
+    .replace(/at \d{1,2}:?\d{0,2}\s*(AM|PM|am|pm)?/gi, '')
+    .replace(/\s+/g, ' ')
     .trim()
 
   if (!title) {
@@ -275,11 +275,11 @@ module.exports = async function handler(req, res) {
               hour12: true
             })
             return `• ${event.summary} - ${formattedDate} at ${formattedTime}`
-          }).join('\\n')
+          }).join('\n')
 
           return res.json({
             success: true,
-            response: `✅ Found ${matchingEvents.length} matching event(s):\\n\\n${eventSummaries}`,
+            response: `✅ Found ${matchingEvents.length} matching event(s):\n\n${eventSummaries}`,
             suggestions: ["Create a new event", "View all events"]
           })
         } else {
@@ -399,10 +399,10 @@ Respond naturally as Claude, the AI assistant. Be helpful and conversational.`
 
     // Parse Claude's natural response for tool usage
     const toolMatches = {
-      search: rawResponse.match(/\\[SEARCH\\]/i),
-      create: rawResponse.match(/\\[CREATE:([^\\]]+)\\]/i),
-      update: rawResponse.match(/\\[UPDATE:([^\\]]+)\\]/i),
-      delete: rawResponse.match(/\\[DELETE:([^\\]]+)\\]/i)
+      search: rawResponse.match(/\[SEARCH\]/i),
+      create: rawResponse.match(/\[CREATE:([^\]]+)\]/i),
+      update: rawResponse.match(/\[UPDATE:([^\]]+)\]/i),
+      delete: rawResponse.match(/\[DELETE:([^\]]+)\]/i)
     }
 
     // If no tools detected, return natural conversation
