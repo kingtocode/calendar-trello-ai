@@ -246,10 +246,11 @@ body {
 }
 
 .status.success {
-  background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
-  color: #1a202c;
-  border: 1px solid rgba(154, 230, 180, 0.5);
+  background: linear-gradient(135deg, #48bb78, #38a169);
+  color: white;
+  border: 1px solid rgba(72, 187, 120, 0.5);
   white-space: pre-line;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .status.error {
