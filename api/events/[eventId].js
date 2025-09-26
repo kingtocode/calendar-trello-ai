@@ -1,5 +1,18 @@
 const { google } = require('googleapis')
 
+function formatDateTimeForCalendar(date, timezone) {
+  // Format date to ISO string but maintain the timezone context
+  // by creating the date in the specified timezone
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+}
+
 module.exports = async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -33,22 +46,25 @@ module.exports = async function handler(req, res) {
 
     // Handle PUT request (update event)
     if (req.method === 'PUT') {
-      const { title, description, startDate, endDate } = req.body
+      const { title, description, startDate, endDate, timezone } = req.body
 
       if (!title || !startDate || !endDate) {
         return res.status(400).json({ error: 'Title, startDate, and endDate are required' })
       }
 
+      // Use provided timezone or detect from browser
+      const eventTimezone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+
       const eventData = {
         summary: title,
         description: description || '',
         start: {
-          dateTime: new Date(startDate).toISOString(),
-          timeZone: 'America/New_York',
+          dateTime: formatDateTimeForCalendar(new Date(startDate), eventTimezone),
+          timeZone: eventTimezone,
         },
         end: {
-          dateTime: new Date(endDate).toISOString(),
-          timeZone: 'America/New_York',
+          dateTime: formatDateTimeForCalendar(new Date(endDate), eventTimezone),
+          timeZone: eventTimezone,
         }
       }
 

@@ -24,10 +24,21 @@ function EventsList() {
   }
 
   const handleEdit = (event) => {
+    // Convert to local time for datetime-local input
+    const startDate = new Date(event.start)
+    const endDate = new Date(event.end)
+
+    // Format for datetime-local input (YYYY-MM-DDTHH:mm)
+    const formatForInput = (date) => {
+      const offset = date.getTimezoneOffset() * 60000 // offset in milliseconds
+      const localISOTime = new Date(date.getTime() - offset).toISOString()
+      return localISOTime.slice(0, 16)
+    }
+
     setEditingEvent({
       ...event,
-      startDate: new Date(event.start).toISOString().slice(0, 16),
-      endDate: new Date(event.end).toISOString().slice(0, 16)
+      startDate: formatForInput(startDate),
+      endDate: formatForInput(endDate)
     })
   }
 
@@ -41,7 +52,8 @@ function EventsList() {
           title: editingEvent.title,
           description: editingEvent.description,
           startDate: editingEvent.startDate,
-          endDate: editingEvent.endDate
+          endDate: editingEvent.endDate,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
         })
       })
 
