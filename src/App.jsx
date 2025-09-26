@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import EventsList from './EventsList'
 
 function App() {
@@ -10,6 +10,7 @@ function App() {
   const [showEvents, setShowEvents] = useState(false)
   const [aiMode, setAiMode] = useState(false) // Default to Simple mode to save AI tokens
   const [suggestions, setSuggestions] = useState([])
+  const [currentDateTime, setCurrentDateTime] = useState('')
   const recognitionRef = useRef(null)
 
   const boards = [
@@ -18,6 +19,29 @@ function App() {
     { value: 'work', label: '💼 Work', emoji: '💼' },
     { value: 'project', label: '🚀 Project', emoji: '🚀' }
   ]
+
+  // Update current date/time on component mount and every minute
+  const updateDateTime = () => {
+    const now = new Date()
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+      timeZone: timezone
+    })
+    setCurrentDateTime(formatter.format(now))
+  }
+
+  useEffect(() => {
+    updateDateTime()
+    const interval = setInterval(updateDateTime, 60000) // Update every minute
+    return () => clearInterval(interval)
+  }, [])
 
   const startVoiceRecognition = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -169,6 +193,11 @@ function App() {
             {aiMode ? ' • AI Mode Active' : ' • Simple Mode Active'}
           </span>
         </p>
+        {currentDateTime && (
+          <div className="current-datetime">
+            🕐 {currentDateTime}
+          </div>
+        )}
         <div className="header-buttons">
           <button
             onClick={() => setAiMode(!aiMode)}
