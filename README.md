@@ -115,6 +115,8 @@ Simply click the 🎤 Voice button and say:
 **Environment Variables Required:**
 Set these in your Vercel dashboard → Project → Settings → Environment Variables:
 
+**IMPORTANT**: Add the `TZ` variable to ensure correct timezone handling in serverless functions.
+
 ```env
 # Google Calendar API Configuration
 GOOGLE_CLIENT_ID=your_google_client_id_here
@@ -137,6 +139,9 @@ DEFAULT_TRELLO_BOARD=kings
 
 # Anthropic Claude API Configuration (Optional - for AI Mode)
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Server Timezone Configuration (Important for accurate event times)
+TZ=America/Chicago
 ```
 
 ### For Local Development
