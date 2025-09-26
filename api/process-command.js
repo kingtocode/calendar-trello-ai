@@ -130,26 +130,33 @@ CURRENT EVENTS: ${JSON.stringify(currentEvents.slice(0, 10))}
 
 INSTRUCTIONS:
 - For CREATE: Extract title, dates, determine if it's an event (has time) or task
-- For EDIT: Match events by keywords, specify changes needed
+- For EDIT: Match events by keywords (extract key terms from existing event titles), specify changes needed
 - For DELETE: Find events by keywords for removal
 - For LIST: Filter and summarize events
 - Check for time conflicts with existing events
 - Provide helpful suggestions
+
+EDIT INTENT DETECTION:
+- Look for words like: "edit", "change", "move", "reschedule", "update", "modify"
+- Look for references to existing events: "tomorrow's meeting", "the dentist appointment", "pickleball event"
+- For EDIT intent, searchKeywords should contain key terms from the event name to find it
+- Only use CREATE if user is clearly asking for a new event/task
 
 REQUIRED JSON RESPONSE FORMAT:
 {
   "intent": "CREATE|EDIT|DELETE|LIST",
   "confidence": 0.8,
   "data": {
-    "title": "Clean task title",
+    "title": "Clean task title (for CREATE) or new title (for EDIT)",
     "startDate": "2025-08-25T14:00:00.000Z",
     "endDate": "2025-08-25T15:00:00.000Z",
     "isEvent": true,
     "description": "Original user input",
-    "searchKeywords": ["for", "edit", "delete"],
-    "changes": {"reminders": {"useDefault": false, "overrides": [{"method": "email", "minutes": 120}]}}
+    "searchKeywords": ["pickleball", "meeting", "dentist"],
+    "timezone": "America/Los_Angeles",
+    "changes": {"summary": "New Title", "reminders": {"useDefault": false, "overrides": [{"method": "email", "minutes": 120}]}}
   },
-  "response": "I'll create that appointment for you!",
+  "response": "I'll update that event for you!",
   "suggestions": ["Add 15 min buffer before next meeting"],
   "conflicts": ["Overlaps with existing meeting at 2 PM"],
   "hasConflicts": false
@@ -209,6 +216,105 @@ RESPOND WITH ONLY VALID JSON - NO OTHER TEXT.`
       conflicts: [],
       hasConflicts: false
     }
+  }
+}
+
+function findEventByKeywords(events, keywords) {
+  if (!keywords || keywords.length === 0) return null
+
+  const searchTerms = keywords.map(k => k.toLowerCase())
+
+  return events.find(event => {
+    const title = (event.title || '').toLowerCase()
+    return searchTerms.some(term => title.includes(term))
+  })
+}
+
+async function handleEditEvent(aiResult, calendarEmail, currentEvents, res) {
+  try {
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    )
+
+    oauth2Client.setCredentials({
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+    })
+
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
+
+    // Find the event to edit based on search keywords
+    const eventToEdit = findEventByKeywords(currentEvents, aiResult.data.searchKeywords)
+
+    if (!eventToEdit) {
+      return res.json({
+        success: false,
+        response: "I couldn't find the event you want to edit. Please be more specific or check if the event exists.",
+        suggestions: ["Try using more specific keywords", "Check your calendar for the exact event name"]
+      })
+    }
+
+    // Prepare update data
+    const updateData = {}
+
+    // Update title if provided
+    if (aiResult.data.title && aiResult.data.title !== eventToEdit.title) {
+      updateData.summary = aiResult.data.title
+    }
+
+    // Update time if provided
+    if (aiResult.data.startDate) {
+      const timezone = aiResult.data.timezone || 'America/New_York'
+      updateData.start = {
+        dateTime: formatDateTimeForCalendar(new Date(aiResult.data.startDate), timezone),
+        timeZone: timezone
+      }
+
+      // Calculate new end time (maintain duration or use provided end time)
+      let endTime
+      if (aiResult.data.endDate) {
+        endTime = new Date(aiResult.data.endDate)
+      } else {
+        // Maintain 1-hour duration
+        endTime = new Date(new Date(aiResult.data.startDate).getTime() + 60 * 60 * 1000)
+      }
+
+      updateData.end = {
+        dateTime: formatDateTimeForCalendar(endTime, timezone),
+        timeZone: timezone
+      }
+    }
+
+    // Add any other changes from AI result
+    if (aiResult.data.changes) {
+      Object.assign(updateData, aiResult.data.changes)
+    }
+
+    // Update the event
+    const response = await calendar.events.patch({
+      calendarId: 'primary',
+      eventId: eventToEdit.id,
+      resource: updateData
+    })
+
+    return res.json({
+      success: true,
+      response: aiResult.response || `✅ Successfully updated "${eventToEdit.title}"`,
+      suggestions: aiResult.suggestions || [],
+      updatedEvent: {
+        id: response.data.id,
+        htmlLink: response.data.htmlLink,
+        summary: response.data.summary
+      }
+    })
+
+  } catch (error) {
+    console.error('Error editing event:', error)
+    return res.status(500).json({
+      error: 'Failed to edit event',
+      details: error.message
+    })
   }
 }
 
@@ -349,17 +455,18 @@ module.exports = async function handler(req, res) {
     const aiResult = await processWithAI(inputText, currentEvents)
     console.log('AI Result:', aiResult)
 
-    // Handle different intents - for now, mainly focus on CREATE
+    // Handle different intents
     switch (aiResult.intent) {
       case 'CREATE':
         return await handleCreateTask(aiResult, calendarEmail, board, res)
       case 'EDIT':
+        return await handleEditEvent(aiResult, calendarEmail, currentEvents, res)
       case 'DELETE':
       case 'LIST':
         // For now, return a simple response for these intents
         return res.json({
           success: true,
-          response: aiResult.response + " (Advanced features coming soon!)",
+          response: aiResult.response + " (DELETE and LIST features coming soon!)",
           suggestions: aiResult.suggestions
         })
       default:
