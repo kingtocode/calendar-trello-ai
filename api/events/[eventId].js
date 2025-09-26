@@ -77,8 +77,8 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Title, startDate, and endDate are required' })
       }
 
-      // Use provided timezone or detect from browser
-      const eventTimezone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+      // Use provided timezone, app default, or detect from browser
+      const eventTimezone = timezone || process.env.APP_TIMEZONE || Intl.DateTimeFormat().resolvedOptions().timeZone
 
       const eventData = {
         summary: title,

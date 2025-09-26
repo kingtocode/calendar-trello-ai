@@ -109,7 +109,7 @@ function parseTaskInput(taskDescription, userTimezone = null) {
     startDate,
     endDate,
     isEvent,
-    timezone: detectedTimezone || userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+    timezone: detectedTimezone || userTimezone || process.env.APP_TIMEZONE || Intl.DateTimeFormat().resolvedOptions().timeZone
   }
 }
 

@@ -8,6 +8,31 @@ function parseTaskInput(taskDescription, userTimezone = null) {
   let endDate = new Date(startDate.getTime() + 60 * 60 * 1000) // Default 1 hour duration
   let isEvent = false
 
+  // Detect explicit timezone mentions in the text
+  const timezoneMap = {
+    'cst': 'America/Chicago',
+    'cdt': 'America/Chicago',
+    'central': 'America/Chicago',
+    'est': 'America/New_York',
+    'edt': 'America/New_York',
+    'eastern': 'America/New_York',
+    'pst': 'America/Los_Angeles',
+    'pdt': 'America/Los_Angeles',
+    'pacific': 'America/Los_Angeles',
+    'mst': 'America/Denver',
+    'mdt': 'America/Denver',
+    'mountain': 'America/Denver'
+  }
+
+  let detectedTimezone = userTimezone
+  const lowerInput = taskDescription.toLowerCase()
+  for (const [abbr, tz] of Object.entries(timezoneMap)) {
+    if (lowerInput.includes(abbr)) {
+      detectedTimezone = tz
+      break
+    }
+  }
+
   const timePattern = /(\d{1,2}):?(\d{2})?\s*(AM|PM|am|pm)?/gi
   const datePattern = /(today|tomorrow|next\s+\w+|monday|tuesday|wednesday|thursday|friday|saturday|sunday|aug\s+\d+|aug\s+\d+,\s+\d+|\d{1,2}\/\d{1,2}|\d{1,2}th|\d{1,2}nd|\d{1,2}rd|\d{1,2}st)/gi
   const meetingPattern = /(meeting|call|appointment|session|interview|standup)/i
@@ -91,7 +116,7 @@ function parseTaskInput(taskDescription, userTimezone = null) {
     startDate,
     endDate,
     isEvent,
-    timezone: userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+    timezone: detectedTimezone || userTimezone || process.env.APP_TIMEZONE || Intl.DateTimeFormat().resolvedOptions().timeZone
   }
 }
 
