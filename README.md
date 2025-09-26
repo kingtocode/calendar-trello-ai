@@ -75,7 +75,7 @@ npm run dev
 ### **Technology Stack**
 - **Frontend**: React 18 + Vite 5, deployed to Vercel
 - **Backend**: Node.js serverless functions on Vercel
-- **AI**: OpenAI GPT-4o-mini for natural language processing
+- **AI**: Anthropic Claude 3.5 Haiku for natural language processing
 - **Integrations**: Google Calendar API, Trello REST API
 - **Voice**: Web Speech API (browser-native)
 
@@ -135,8 +135,8 @@ TRELLO_PROJECT_BOARD_LIST_ID=your_project_board_list_id_here
 # Default board (options: kings, personal, work, project)
 DEFAULT_TRELLO_BOARD=kings
 
-# OpenAI API Configuration (Optional - for AI Mode)
-OPENAI_API_KEY=your_openai_api_key_here
+# Anthropic Claude API Configuration (Optional - for AI Mode)
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 ```
 
 ### For Local Development
@@ -182,9 +182,9 @@ npm run dev
    - Add `.json` to the board URL
    - Find the list ID for where you want cards created
 
-### 3. OpenAI API Setup (Optional)
+### 3. Anthropic Claude API Setup (Optional)
 
-1. Go to [OpenAI Platform](https://platform.openai.com/api-keys)
+1. Go to [Anthropic Console](https://console.anthropic.com/)
 2. Create an API key
 3. Add billing if needed for usage beyond free tier
 4. AI Mode will gracefully fallback to Simple Mode if quota exceeded
@@ -256,11 +256,11 @@ ngrok http 5174
 1. **Voice not working**: Use Chrome/Safari, ensure microphone permissions
 2. **Calendar events not creating**: Check Google API credentials and refresh token
 3. **Trello cards not creating**: Verify API key, token, and list ID
-4. **AI not responding**: Check OpenAI API key and billing. App falls back to Simple Mode
+4. **AI not responding**: Check Anthropic API key and billing. App falls back to Simple Mode
 5. **CORS issues**: Ensure both servers running on correct ports
 
 ### **API Rate Limits**
-- OpenAI: App gracefully switches to Simple Mode
+- Anthropic Claude: App gracefully switches to Simple Mode
 - Google Calendar: Built-in retry logic
 - Trello: Standard rate limiting applies
 
@@ -269,7 +269,7 @@ ngrok http 5174
 - **Live App**: https://calendar-trello-ai.vercel.app/
 - **Google Calendar API**: [Console](https://console.cloud.google.com)
 - **Trello API**: [Developer Portal](https://trello.com/app-key)
-- **OpenAI API**: [Platform](https://platform.openai.com/api-keys)
+- **Anthropic API**: [Console](https://console.anthropic.com/)
 - **Vercel Dashboard**: [Manage Deployment](https://vercel.com/dashboard)
 
 ---

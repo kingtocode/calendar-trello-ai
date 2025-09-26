@@ -1,6 +1,6 @@
 const { google } = require('googleapis')
 const Trello = require('trello')
-const OpenAI = require('openai')
+const Anthropic = require('@anthropic-ai/sdk')
 
 // Helper functions (same as create-task.js)
 function parseTaskInput(taskDescription, userTimezone = null) {
@@ -114,72 +114,80 @@ function getBoardListId(boardName) {
 
 async function processWithAI(userInput, currentEvents = []) {
   try {
-    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_openai_api_key_here') {
-      throw new Error('OpenAI API key not configured')
+    if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your_anthropic_api_key_here') {
+      throw new Error('Anthropic API key not configured')
     }
 
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
     })
 
-    const systemPrompt = `You are an AI assistant for a personal task management app that creates calendar events and Trello cards. Analyze natural language input and determine user intent.
+    const systemPrompt = `You are a smart task management AI that helps users with calendar events and Trello cards. Your job is to analyze user input and determine their intent.
 
-CAPABILITIES: CREATE, EDIT, DELETE, LIST events/tasks
+<capabilities>
+CREATE: Make new events/tasks
+EDIT: Modify existing events
+DELETE: Remove events
+LIST: Show/filter events
+</capabilities>
 
-CURRENT EVENTS: ${JSON.stringify(currentEvents.slice(0, 10))}
+<current_events>
+${JSON.stringify(currentEvents.slice(0, 10), null, 2)}
+</current_events>
 
-INSTRUCTIONS:
-- For CREATE: Extract title, dates, determine if it's an event (has time) or task
-- For EDIT: Match events by keywords (extract key terms from existing event titles), specify changes needed
-- For DELETE: Find events by keywords for removal
-- For LIST: Filter and summarize events
-- Check for time conflicts with existing events
-- Provide helpful suggestions
+<instructions>
+1. INTENT DETECTION:
+   - CREATE: "schedule", "add", "create", "new", "book", "plan"
+   - EDIT: "edit", "change", "move", "reschedule", "update", "modify", "shift"
+   - DELETE: "delete", "remove", "cancel", "drop"
+   - LIST: "show", "list", "what's", "schedule for", "events"
 
-EDIT INTENT DETECTION:
-- Look for words like: "edit", "change", "move", "reschedule", "update", "modify"
-- Look for references to existing events: "tomorrow's meeting", "the dentist appointment", "pickleball event"
-- For EDIT intent, searchKeywords should contain key terms from the event name to find it
-- Only use CREATE if user is clearly asking for a new event/task
+2. For EDIT/DELETE: Extract keywords from existing event titles to match them
+3. For CREATE: Parse dates, times, and determine if it's a timed event
+4. Check for scheduling conflicts with existing events
+5. Provide helpful, contextual suggestions
+</instructions>
 
-REQUIRED JSON RESPONSE FORMAT:
+<response_format>
+Respond with ONLY valid JSON in this exact format:
+
 {
   "intent": "CREATE|EDIT|DELETE|LIST",
-  "confidence": 0.8,
+  "confidence": 0.9,
   "data": {
-    "title": "Clean task title (for CREATE) or new title (for EDIT)",
-    "startDate": "2025-08-25T14:00:00.000Z",
-    "endDate": "2025-08-25T15:00:00.000Z",
+    "title": "Event title",
+    "startDate": "2025-09-26T17:00:00",
+    "endDate": "2025-09-26T18:00:00",
     "isEvent": true,
     "description": "Original user input",
-    "searchKeywords": ["pickleball", "meeting", "dentist"],
-    "timezone": "America/Los_Angeles",
-    "changes": {"summary": "New Title", "reminders": {"useDefault": false, "overrides": [{"method": "email", "minutes": 120}]}}
+    "searchKeywords": ["pickleball", "dentist"],
+    "timezone": "America/Los_Angeles"
   },
-  "response": "I'll update that event for you!",
-  "suggestions": ["Add 15 min buffer before next meeting"],
-  "conflicts": ["Overlaps with existing meeting at 2 PM"],
+  "response": "I'll help you with that!",
+  "suggestions": ["Consider adding travel time"],
+  "conflicts": [],
   "hasConflicts": false
 }
+</response_format>
 
-RESPOND WITH ONLY VALID JSON - NO OTHER TEXT.`
+IMPORTANT: Return ONLY the JSON response, no other text.`
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userInput }
-      ],
-      temperature: 0.3,
+    const completion = await anthropic.messages.create({
+      model: "claude-3-5-haiku-20241022",
       max_tokens: 1000,
+      temperature: 0.3,
+      system: systemPrompt,
+      messages: [
+        { role: "user", content: userInput }
+      ]
     })
 
     let aiResponse
     try {
-      aiResponse = JSON.parse(completion.choices[0].message.content)
+      aiResponse = JSON.parse(completion.content[0].text)
     } catch (parseError) {
       console.error('JSON parse error:', parseError)
-      console.log('Raw AI response:', completion.choices[0].message.content)
+      console.log('Raw AI response:', completion.content[0].text)
       // Attempt to detect intent from keywords when JSON parsing fails
       const lowerInput = userInput.toLowerCase()
       const editKeywords = ['edit', 'change', 'move', 'reschedule', 'update', 'modify']
@@ -217,8 +225,8 @@ RESPOND WITH ONLY VALID JSON - NO OTHER TEXT.`
         intent: "ERROR",
         confidence: 0.0,
         data: {},
-        response: "⚠️ AI quota limit reached. Please add billing to your OpenAI account or switch to Simple mode for basic task creation without AI enhancement.",
-        suggestions: ["Switch to Simple mode", "Add OpenAI billing at platform.openai.com"],
+        response: "⚠️ AI quota limit reached. Please check your Anthropic account billing or switch to Simple mode for basic task creation without AI enhancement.",
+        suggestions: ["Switch to Simple mode", "Check Anthropic billing at console.anthropic.com"],
         conflicts: [],
         hasConflicts: false,
         quotaError: true
@@ -235,8 +243,8 @@ RESPOND WITH ONLY VALID JSON - NO OTHER TEXT.`
         intent: "ERROR",
         confidence: 0.0,
         data: {},
-        response: "⚠️ I detected you want to edit an event, but AI processing failed. Editing requires AI functionality. Please add OpenAI billing or try creating a new event instead.",
-        suggestions: ["Add OpenAI billing at platform.openai.com", "Switch to Simple mode", "Create a new event instead"],
+        response: "⚠️ I detected you want to edit an event, but AI processing failed. Editing requires AI functionality. Please check your Anthropic account or try creating a new event instead.",
+        suggestions: ["Check Anthropic billing at console.anthropic.com", "Switch to Simple mode", "Create a new event instead"],
         conflicts: [],
         hasConflicts: false,
         aiError: true
