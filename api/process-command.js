@@ -323,6 +323,7 @@ IMPORTANT:
 - For LIST queries: Respond in natural language directly
 - For CREATE/EDIT/DELETE: Return ONLY JSON, no other text`
 
+    console.log('🤖 Calling Anthropic API with input:', userInput)
     const completion = await anthropic.messages.create({
       model: "claude-3-5-haiku-20241022",
       max_tokens: 1000,
@@ -333,7 +334,10 @@ IMPORTANT:
       ]
     })
 
+    console.log('🤖 Anthropic API response received')
+
     const rawResponse = completion.content[0].text.trim()
+    console.log('🤖 Raw response:', rawResponse)
     let aiResponse
 
     // Check if this is a LIST query with natural language response
@@ -853,9 +857,12 @@ module.exports = async function handler(req, res) {
     }
   } catch (error) {
     console.error('Error processing command:', error)
+    console.error('Error stack:', error.stack)
+    console.error('User input was:', inputText)
     res.status(500).json({
       error: 'Failed to process command',
-      details: error.message
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     })
   }
 }
