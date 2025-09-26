@@ -2,6 +2,48 @@ const { google } = require('googleapis')
 const Trello = require('trello')
 const Anthropic = require('@anthropic-ai/sdk')
 
+// Helper function to parse AI dates in user timezone
+function parseAIDateInUserTimezone(dateString, userTimezone) {
+  // Claude AI returns dates like "2024-09-26T17:00:00" (no timezone info)
+  // We need to interpret this as the user's timezone, not UTC
+  try {
+    console.log('🐛 PARSING AI DATE:')
+    console.log('- AI date string:', dateString)
+    console.log('- User timezone:', userTimezone)
+
+    // If the date already has timezone info, use it as-is
+    if (dateString.includes('Z') || dateString.includes('+') || dateString.includes('-')) {
+      console.log('- Date has timezone info, using as-is')
+      return new Date(dateString)
+    }
+
+    // Otherwise, treat it as a local time in the user's timezone
+    // Parse the components manually
+    const [datePart, timePart] = dateString.split('T')
+    const [year, month, day] = datePart.split('-').map(Number)
+    const [hours, minutes, seconds = 0] = timePart ? timePart.split(':').map(Number) : [0, 0, 0]
+
+    // Create date in user's timezone
+    const dateInUserTZ = new Date()
+    dateInUserTZ.setFullYear(year)
+    dateInUserTZ.setMonth(month - 1) // Month is 0-indexed
+    dateInUserTZ.setDate(day)
+    dateInUserTZ.setHours(hours)
+    dateInUserTZ.setMinutes(minutes)
+    dateInUserTZ.setSeconds(seconds)
+    dateInUserTZ.setMilliseconds(0)
+
+    console.log('- Parsed date:', dateInUserTZ.toString())
+    console.log('- Local time string:', dateInUserTZ.toLocaleString())
+
+    return dateInUserTZ
+  } catch (error) {
+    console.error('Error parsing AI date:', error)
+    // Fallback to regular date parsing
+    return new Date(dateString)
+  }
+}
+
 // Helper functions (same as create-task.js)
 function parseTaskInput(taskDescription, userTimezone = null) {
   const now = new Date()
@@ -412,17 +454,17 @@ async function handleEditEvent(aiResult, calendarEmail, currentEvents, res, user
     if (aiResult.data.startDate) {
       const timezone = aiResult.data.timezone || 'America/New_York'
       updateData.start = {
-        dateTime: formatDateTimeForCalendar(new Date(aiResult.data.startDate), timezone),
+        dateTime: formatDateTimeForCalendar(parseAIDateInUserTimezone(aiResult.data.startDate, timezone), timezone),
         timeZone: timezone
       }
 
       // Calculate new end time (maintain duration or use provided end time)
       let endTime
       if (aiResult.data.endDate) {
-        endTime = new Date(aiResult.data.endDate)
+        endTime = parseAIDateInUserTimezone(aiResult.data.endDate, timezone)
       } else {
         // Maintain 1-hour duration
-        endTime = new Date(new Date(aiResult.data.startDate).getTime() + 60 * 60 * 1000)
+        endTime = new Date(parseAIDateInUserTimezone(aiResult.data.startDate, timezone).getTime() + 60 * 60 * 1000)
       }
 
       updateData.end = {
@@ -486,11 +528,11 @@ async function handleCreateTask(aiResult, calendarEmail, board, res) {
         summary: taskData.title,
         description: `Task created using AI`,
         start: {
-          dateTime: formatDateTimeForCalendar(new Date(taskData.startDate), taskData.timezone),
+          dateTime: formatDateTimeForCalendar(parseAIDateInUserTimezone(taskData.startDate, taskData.timezone), taskData.timezone),
           timeZone: taskData.timezone,
         },
         end: {
-          dateTime: formatDateTimeForCalendar(new Date(taskData.endDate), taskData.timezone),
+          dateTime: formatDateTimeForCalendar(parseAIDateInUserTimezone(taskData.endDate, taskData.timezone), taskData.timezone),
           timeZone: taskData.timezone,
         },
         attendees: [
@@ -529,7 +571,7 @@ async function handleCreateTask(aiResult, calendarEmail, board, res) {
 
     const trelloCard = await trello.addCard(
       taskData.title,
-      `${taskData.isEvent ? `📅 Scheduled for: ${new Date(taskData.startDate).toLocaleString()}` : '📝 Task created using AI'}\n\n${calendarEvent ? `🔗 Calendar Event: ${calendarEvent.htmlLink}` : ''}\n\n📋 Board: ${board}`,
+      `${taskData.isEvent ? `📅 Scheduled for: ${parseAIDateInUserTimezone(taskData.startDate, taskData.timezone).toLocaleString()}` : '📝 Task created using AI'}\n\n${calendarEvent ? `🔗 Calendar Event: ${calendarEvent.htmlLink}` : ''}\n\n📋 Board: ${board}`,
       listId
     )
 
