@@ -247,8 +247,9 @@ body {
 
 .status.success {
   background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
-  color: #22543d;
+  color: #1a202c;
   border: 1px solid rgba(154, 230, 180, 0.5);
+  white-space: pre-line;
 }
 
 .status.error {

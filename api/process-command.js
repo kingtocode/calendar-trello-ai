@@ -849,12 +849,23 @@ module.exports = async function handler(req, res) {
         if (matchingEvents.length > 0) {
           const eventSummaries = matchingEvents.slice(0, 3).map(event => {
             const date = new Date(event.start.dateTime || event.start.date)
-            return `• ${event.summary} - ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`
+            const formattedDate = date.toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            })
+            const formattedTime = date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            })
+            return `• ${event.summary} - ${formattedDate} at ${formattedTime}`
           }).join('\n')
 
           return res.json({
             success: true,
-            response: `Found ${matchingEvents.length} matching event(s):\n\n${eventSummaries}`,
+            response: `✅ Found ${matchingEvents.length} matching event(s):\n\n${eventSummaries}`,
             intent: 'LIST',
             events: matchingEvents,
             suggestions: ["Create a new event", "View all events"]
@@ -862,7 +873,7 @@ module.exports = async function handler(req, res) {
         } else {
           return res.json({
             success: true,
-            response: "No matching events found in your calendar.",
+            response: "✅ No matching events found in your calendar.",
             intent: 'LIST',
             events: [],
             suggestions: ["Create a new event", "View all events"]
