@@ -365,10 +365,9 @@ body {
 }
 
 .trello-card {
-  border-left: 6px solid #0079bf;
-  background: linear-gradient(135deg, rgba(0, 121, 191, 0.25) 0%, rgba(255, 255, 255, 0.9) 100%);
+  border-left: 4px solid #0079bf;
+  background: linear-gradient(135deg, rgba(0, 121, 191, 0.12) 0%, rgba(255, 255, 255, 0.95) 100%);
   position: relative;
-  border: 2px solid rgba(0, 121, 191, 0.2);
 }
 
 .trello-card:hover {
@@ -504,30 +503,15 @@ body {
   overflow: hidden;
 }
 
-/* Calendar event styling */
+/* Calendar event styling - subtle */
 .event-card:not(.trello-card) {
-  border-left: 6px solid #667eea;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(255, 255, 255, 0.9) 100%);
-  border: 2px solid rgba(102, 126, 234, 0.2);
+  border-left: 4px solid #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(255, 255, 255, 0.95) 100%);
 }
 
-.event-card:not(.trello-card)::before {
-  content: '📅';
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  font-size: 1.5rem;
-  opacity: 0.5;
-}
+/* Removed calendar icon too - keeping it clean */
 
-.trello-card::before {
-  content: '📋';
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  font-size: 1.5rem;
-  opacity: 0.5;
-}
+/* Removed clipboard icon - looked awkward */
 
 .event-card:hover {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
@@ -559,43 +543,38 @@ body {
 }
 
 .btn-edit, .btn-delete {
-  border: none;
+  background: transparent;
+  border: 1px solid #cbd5e0;
   border-radius: 6px;
-  padding: 0.25rem 0.5rem;
+  padding: 0.375rem 0.75rem;
   cursor: pointer;
-  font-size: 0.7rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 600;
+  font-size: 0.75rem;
+  transition: all 0.3s ease;
+  font-weight: 500;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .btn-edit {
-  background: linear-gradient(135deg, #48bb78, #38a169);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #4a5568;
 }
 
 .btn-edit:hover {
-  background: linear-gradient(135deg, #38a169, #2f855a);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+  background: rgba(102, 126, 234, 0.1);
+  border-color: #667eea;
+  color: #667eea;
 }
 
 .btn-delete {
-  background: linear-gradient(135deg, #f56565, #e53e3e);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #4a5568;
 }
 
 .btn-delete:hover {
-  background: linear-gradient(135deg, #e53e3e, #c53030);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(229, 62, 62, 0.4);
+  background: rgba(229, 62, 62, 0.1);
+  border-color: #e53e3e;
+  color: #e53e3e;
 }
 
 .event-details {
