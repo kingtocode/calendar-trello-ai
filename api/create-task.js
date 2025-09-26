@@ -1,5 +1,39 @@
 const { google } = require('googleapis')
 const Trello = require('trello')
+const { DateTime } = require('luxon')
+
+// Proper timezone-aware date formatting using Luxon
+function formatDateTimeWithLuxon(dateString, timezone) {
+  try {
+    console.log('🚀 LUXON formatDateTime (Simple Mode):')
+    console.log('- Input dateString:', dateString)
+    console.log('- Target timezone:', timezone)
+
+    // Parse the date string as being in the user's timezone
+    let dt = DateTime.fromISO(dateString, { zone: timezone })
+
+    // If parsing failed, try without timezone assumption
+    if (!dt.isValid) {
+      console.log('- Trying to parse as local time in timezone')
+      dt = DateTime.fromISO(dateString).setZone(timezone)
+    }
+
+    if (!dt.isValid) {
+      throw new Error(`Invalid date: ${dateString}`)
+    }
+
+    // Format for Google Calendar API (ISO string without timezone)
+    const formatted = dt.toFormat("yyyy-MM-dd'T'HH:mm:ss")
+    console.log('- Luxon formatted:', formatted)
+    console.log('- DateTime object:', dt.toString())
+
+    return formatted
+  } catch (error) {
+    console.error('Luxon formatting failed:', error)
+    // Fallback to simple parsing
+    return new Date(dateString).toISOString().slice(0, 19)
+  }
+}
 
 // Helper functions
 function parseTaskInput(taskDescription, userTimezone = null) {

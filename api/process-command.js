@@ -1,6 +1,40 @@
 const { google } = require('googleapis')
 const Trello = require('trello')
 const Anthropic = require('@anthropic-ai/sdk')
+const { DateTime } = require('luxon')
+
+// Proper timezone-aware date formatting using Luxon
+function formatDateTimeWithLuxon(dateString, timezone) {
+  try {
+    console.log('🚀 LUXON formatDateTime:')
+    console.log('- Input dateString:', dateString)
+    console.log('- Target timezone:', timezone)
+
+    // Parse the date string as being in the user's timezone
+    let dt = DateTime.fromISO(dateString, { zone: timezone })
+
+    // If parsing failed, try without timezone assumption
+    if (!dt.isValid) {
+      console.log('- Trying to parse as local time in timezone')
+      dt = DateTime.fromISO(dateString).setZone(timezone)
+    }
+
+    if (!dt.isValid) {
+      throw new Error(`Invalid date: ${dateString}`)
+    }
+
+    // Format for Google Calendar API (ISO string without timezone)
+    const formatted = dt.toFormat("yyyy-MM-dd'T'HH:mm:ss")
+    console.log('- Luxon formatted:', formatted)
+    console.log('- DateTime object:', dt.toString())
+
+    return formatted
+  } catch (error) {
+    console.error('Luxon formatting failed:', error)
+    // Fallback to simple parsing
+    return new Date(dateString).toISOString().slice(0, 19)
+  }
+}
 
 // Helper function to parse AI dates in user timezone
 function parseAIDateInUserTimezone(dateString, userTimezone) {
@@ -455,21 +489,23 @@ async function handleEditEvent(aiResult, calendarEmail, currentEvents, res, user
     if (aiResult.data.startDate) {
       const timezone = aiResult.data.timezone || userTimezone || 'America/Chicago'
       updateData.start = {
-        dateTime: formatDateTimeForCalendar(new Date(aiResult.data.startDate), timezone),
+        dateTime: formatDateTimeWithLuxon(aiResult.data.startDate, timezone),
         timeZone: timezone
       }
 
       // Calculate new end time (maintain duration or use provided end time)
       let endTime
       if (aiResult.data.endDate) {
-        endTime = new Date(aiResult.data.endDate)
+        endTime = aiResult.data.endDate
       } else {
-        // Maintain 1-hour duration
-        endTime = new Date(new Date(aiResult.data.startDate).getTime() + 60 * 60 * 1000)
+        // Maintain 1-hour duration using Luxon
+        const startDt = DateTime.fromISO(aiResult.data.startDate, { zone: timezone })
+        const endDt = startDt.plus({ hours: 1 })
+        endTime = endDt.toISO({ includeOffset: false }).slice(0, 19)
       }
 
       updateData.end = {
-        dateTime: formatDateTimeForCalendar(endTime, timezone),
+        dateTime: formatDateTimeWithLuxon(endTime, timezone),
         timeZone: timezone
       }
     }
@@ -529,11 +565,11 @@ async function handleCreateTask(aiResult, calendarEmail, board, res) {
         summary: taskData.title,
         description: `Task created using AI`,
         start: {
-          dateTime: formatDateTimeForCalendar(new Date(taskData.startDate), taskData.timezone),
+          dateTime: formatDateTimeWithLuxon(taskData.startDate, taskData.timezone),
           timeZone: taskData.timezone,
         },
         end: {
-          dateTime: formatDateTimeForCalendar(new Date(taskData.endDate), taskData.timezone),
+          dateTime: formatDateTimeWithLuxon(taskData.endDate, taskData.timezone),
           timeZone: taskData.timezone,
         },
         attendees: [
@@ -572,7 +608,7 @@ async function handleCreateTask(aiResult, calendarEmail, board, res) {
 
     const trelloCard = await trello.addCard(
       taskData.title,
-      `${taskData.isEvent ? `📅 Scheduled for: ${new Date(taskData.startDate).toLocaleString()}` : '📝 Task created using AI'}\n\n${calendarEvent ? `🔗 Calendar Event: ${calendarEvent.htmlLink}` : ''}\n\n📋 Board: ${board}`,
+      `${taskData.isEvent ? `📅 Scheduled for: ${DateTime.fromISO(taskData.startDate, { zone: taskData.timezone }).toLocaleString(DateTime.DATETIME_MED)}` : '📝 Task created using AI'}\n\n${calendarEvent ? `🔗 Calendar Event: ${calendarEvent.htmlLink}` : ''}\n\n📋 Board: ${board}`,
       listId
     )
 
