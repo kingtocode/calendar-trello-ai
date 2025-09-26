@@ -180,14 +180,32 @@ RESPOND WITH ONLY VALID JSON - NO OTHER TEXT.`
     } catch (parseError) {
       console.error('JSON parse error:', parseError)
       console.log('Raw AI response:', completion.choices[0].message.content)
-      aiResponse = {
-        intent: "CREATE",
-        confidence: 0.5,
-        data: parseTaskInput(userInput, timezone),
-        response: "I'll create that task for you!",
-        suggestions: [],
-        conflicts: [],
-        hasConflicts: false
+      // Attempt to detect intent from keywords when JSON parsing fails
+      const lowerInput = userInput.toLowerCase()
+      const editKeywords = ['edit', 'change', 'move', 'reschedule', 'update', 'modify']
+      const isEditIntent = editKeywords.some(keyword => lowerInput.includes(keyword))
+
+      if (isEditIntent) {
+        aiResponse = {
+          intent: "ERROR",
+          confidence: 0.0,
+          data: {},
+          response: "⚠️ I detected you want to edit an event, but AI processing failed. Please try again or switch to Simple mode.",
+          suggestions: ["Try again in a few seconds", "Switch to Simple mode", "Create a new event instead"],
+          conflicts: [],
+          hasConflicts: false,
+          parseError: true
+        }
+      } else {
+        aiResponse = {
+          intent: "CREATE",
+          confidence: 0.5,
+          data: parseTaskInput(userInput, timezone),
+          response: "I'll create that task for you!",
+          suggestions: [],
+          conflicts: [],
+          hasConflicts: false
+        }
       }
     }
     return aiResponse
@@ -207,10 +225,28 @@ RESPOND WITH ONLY VALID JSON - NO OTHER TEXT.`
       }
     }
 
+    // Attempt to detect intent from keywords when AI fails
+    const lowerInput = userInput.toLowerCase()
+    const editKeywords = ['edit', 'change', 'move', 'reschedule', 'update', 'modify']
+    const isEditIntent = editKeywords.some(keyword => lowerInput.includes(keyword))
+
+    if (isEditIntent) {
+      return {
+        intent: "ERROR",
+        confidence: 0.0,
+        data: {},
+        response: "⚠️ I detected you want to edit an event, but AI processing failed. Editing requires AI functionality. Please add OpenAI billing or try creating a new event instead.",
+        suggestions: ["Add OpenAI billing at platform.openai.com", "Switch to Simple mode", "Create a new event instead"],
+        conflicts: [],
+        hasConflicts: false,
+        aiError: true
+      }
+    }
+
     return {
       intent: "CREATE",
       confidence: 0.5,
-      data: parseTaskInput(userInput),
+      data: parseTaskInput(userInput, timezone),
       response: "I'll create that task for you!",
       suggestions: [],
       conflicts: [],
